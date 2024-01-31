@@ -11,5 +11,5 @@
 - Lire les 80 premières pages du livre (chapitre 2 sautable)
 - Choisir 5-6 jeux sur lesquels on veut travailler, ou un seul gros jeu
 - regarder comment importer des fichiers depuis vsc (plug in)
-- Commencer à coder des bots (heuristique) 
+- Commencer à coder des bots (heuristiques) 
 - Regarder comment récupérer les logs
