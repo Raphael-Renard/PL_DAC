@@ -173,9 +173,3 @@ while True:
                 print(str(row)+" "+str(col))
                 board[row][col]="X"
             
-
-
-
-
-
-        
