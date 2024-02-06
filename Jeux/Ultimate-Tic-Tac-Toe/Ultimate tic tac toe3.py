@@ -133,11 +133,11 @@ while True:
         
         if ["O","O","O"] in boards[x][y] or [row[0] for row in boards[x][y]]==["O","O","O"] or [row[1] for row in boards[x][y]]==["O","O","O"] or [row[2] for row in boards[x][y]]==["O","O","O"] or (boards[x][y][0][0]=="O" and boards[x][y][1][1]=="O" and boards[x][y][2][2]=="O") or (boards[x][y][2][0]=="O" and boards[x][y][1][1]=="O" and boards[x][y][0][2]=="O"):
             boards[x][y] = "O"
-        elif empty==[]:
+        elif not(" " in boards[x][y][0]) and not(" " in boards[x][y][1]) and not(" " in boards[x][y][2]):
             boards[x][y] = "N"
 
 
-        board_x = opponent_row%3
+        board_x = opponent_row%3 # nouvel emplacement
         board_y = opponent_col%3
 
         if boards[board_x][board_y]=="X" or boards[board_x][board_y]=="O" or  boards[board_x][board_y]=="N":
