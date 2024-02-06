@@ -17,4 +17,6 @@ Jeux choisis :
 
 
 **À faire :**
--
+- lire jusqu'au chapitre 8 (chapitre 6 important)
+- recoder les jeux pour pouvoir faire des simulations
+- implémenter MTS UCB
