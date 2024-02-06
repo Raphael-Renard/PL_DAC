@@ -10,32 +10,20 @@ def game(conn1, conn2):
 
     conn1.send("-1 -1") # init opponent_row, opponent_col
 
-    conn1.send("81") # init valid_action_count
-
-    for i in range(9): #init row, col
+    empty = []
+    for i in range(9): #init empty
         for j in range(9):
-            conn1.send(str(i)+" "+str(j))
+            empty.append((i,j))
+    conn1.send(empty)
+
 
     while not(stop):
         choice = False
-        
+        #print("attente coup j1")
         opponent_row, opponent_col = [int(i) for i in conn1.recv().split()] 
+        print("coup j1 :",opponent_row, opponent_col)
         conn2.send(str(opponent_row)+" " +str(opponent_col))
 
-        empty = []
-        for x in range(3):
-            for y in range(3):
-                for i in range(3):
-                    for j in range(3):
-                        if len(boards[x][y]>1):
-                            if boards[x][y][i][j] ==  " ":
-                                empty.append((i+3*x,j+3*y))
-
-        valid_action_count = len(empty)
-        conn2.send(str(valid_action_count))
-        print("yolo")
-        for e1,e2 in empty:
-            conn2.send(str(e1)+" "+str(e2))
 
 
         if (opponent_row, opponent_col) in empty:
@@ -48,6 +36,15 @@ def game(conn1, conn2):
             elif empty==[]:
                 boards[x][y] = "N"
 
+            empty = []
+            for x in range(3):
+                for y in range(3):
+                    if len(boards[x][y])>1:
+                        for i in range(3):
+                            for j in range(3):
+                                if boards[x][y][i][j] ==  " ":
+                                    empty.append((i+3*x,j+3*y))
+            conn2.send(empty)
 
             board_x = opponent_row%3
             board_y = opponent_col%3
@@ -55,12 +52,15 @@ def game(conn1, conn2):
             if boards[board_x][board_y]=="X" or boards[board_x][board_y]=="O" or  boards[board_x][board_y]=="N":
                 choice = True
 
+            
             player_row, player_col = [int(i) for i in conn2.recv().split()]
+            print("coup j2 :",player_row, player_col)
             if (player_row, player_col) in empty:
                 if player_row//3==board_x and player_col//3 == board_y and not(choice):
                     boards[board_x][board_y][player_row%3][player_col%3] = "X"
-                elif choice and boards[player_row//3][player_col//3]!="N" and  boards[player_row//3][player_col//3]!="O" and  boards[player_row//3][player_col//3]!="X":
+                elif choice and boards[player_row//3][player_col//3]!="N" and boards[player_row//3][player_col//3]!="O" and  boards[player_row//3][player_col//3]!="X":
                     boards[board_x][board_y][player_row%3][player_col%3] = "X"
+                    choice = False
                 else:
                     print("coup invalide")
                     stop = True
@@ -78,6 +78,19 @@ def game(conn1, conn2):
         elif [[len(boards[i][j]) for j in range(3)] for i in range(3)] == [[1,1,1],[1,1,1],[1,1,1]]:
             print("match nul")
             stop = True
+        
+        conn1.send(str(player_row)+" " +str(player_col))
+
+        empty = []
+        for x in range(3):
+            for y in range(3):
+                if len(boards[x][y])>1:
+                    for i in range(3):
+                        for j in range(3):      
+                            if boards[x][y][i][j] ==  " ":
+                                empty.append((i+3*x,j+3*y))
+        conn1.send(empty)
+
 
             
 
@@ -166,19 +179,9 @@ def bot(conn_in, conn_out):
 
 
     while True:
-        print("joue1")
-
-        empty = []
         opponent_row, opponent_col = [int(i) for i in conn_out.recv().split()]
-
-        print("joue",opponent_row,opponent_col)
-        valid_action_count = int(conn_out.recv())
-        print("vaa",valid_action_count)
-
-        for i in range(valid_action_count):
-            row, col = [int(j) for j in conn_out.recv().split()]
-            empty.append((row,col))
-
+        empty = conn_out.recv()
+        #print(empty)
 
         if (opponent_row, opponent_col)!=(-1,-1):
             x = opponent_row//3
@@ -189,7 +192,6 @@ def bot(conn_in, conn_out):
                 boards[x][y] = "O"
             elif empty==[]:
                 boards[x][y] = "N"
-
 
             board_x = opponent_row%3
             board_y = opponent_col%3
@@ -207,7 +209,7 @@ def bot(conn_in, conn_out):
         if not(bo):
             for (x1,y1) in empty:
                 if x1//3==board_x and y1//3 == board_y:
-                    conn_in.send(str(x1)+" "+str(y1))
+                    conn_out.send(str(x1)+" "+str(y1))
                     boards[board_x][board_y][x1%3][y1%3] = "X"
                     break
 
@@ -231,26 +233,3 @@ if __name__ == '__main__':
     p_game.start()
     p_bot1.start()
     p_bot2.start()
-
-    while True:
-        """"
-        try:
-            # Receive responses from game and print
-            game_response1 = parent_conn_game1.recv()
-            print(game_response1)
-
-            # Receive responses from game and print
-            game_response2 = parent_conn_game2.recv()
-            print(game_response2)
-
-            # Send responses to bots
-            parent_conn_game1.send(game_response2)
-            parent_conn_game2.send(game_response1)
-
-        except EOFError:
-            # If the user ends the input (Ctrl + D), terminate the processes and exit
-            p_game.terminate()
-            p_bot1.terminate()
-            p_bot2.terminate()
-            break
-        """
