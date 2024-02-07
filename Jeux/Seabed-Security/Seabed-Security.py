@@ -41,6 +41,7 @@ def distance(e1, e2):
 
 remontee: Dict[int, bool] = {}
 target: Dict[int, Vector] = {}
+light_cooldown: Dict[int, int] = {}
 fish_details: Dict[int, FishDetail] = {}
 
 fish_count = int(input())
@@ -84,8 +85,8 @@ while True:
 
         if drone_id not in remontee:
             remontee[drone_id] = False
-        if drone_id not in target:
             target[drone_id] = Vector(drone_x, 10000)
+            light_cooldown[drone_id] = 7
 
     foe_drone_count = int(input())
     for _ in range(foe_drone_count):
@@ -121,23 +122,29 @@ while True:
     for drone in my_drones:
         d = 424
         wait = False
+
         light = 0
-        light_cooldown = 5
+        light_cooldown[drone.drone_id] -= 1
 
         x = drone.pos.x
         y = drone.pos.y
 
         scannable_fish = False
 
+        if 0 < x < 5000:
+            intervalle = (800, 4601)
+        else:
+            intervalle = (5400, 9201)
+
         if remontee[drone.drone_id] and y < 500:
             remontee[drone.drone_id] = False
             while abs(x - target[drone.drone_id].x) <= 1500:
-                target[drone.drone_id] = Vector(random.randint(800, 9200), 1000)
+                target[drone.drone_id] = Vector(random.randint(intervalle[0], intervalle[1]), 1000)
 
         elif not remontee[drone.drone_id] and y > 9200:
             remontee[drone.drone_id] = True
             while abs(x - target[drone.drone_id].x) <= 1500:
-                target[drone.drone_id] = Vector(random.randint(800, 9200), 9000)
+                target[drone.drone_id] = Vector(random.randint(intervalle[0], intervalle[1]), 9000)
 
         if x == target[drone.drone_id].x and y == target[drone.drone_id].y:
             if y == 1000:
@@ -149,9 +156,31 @@ while True:
             if fish.fish_id not in my_scans:
                 scannable_fish = True
 
-        if light_cooldown == 0 or (light_cooldown <= 5 and scannable_fish):
+        # if x <= 500:
+        #     if fish_dir_count["L"]:
+        #         target_x = x - d
+        #     else:
+        #         target_x = x + d
+        # else:
+        #     if fish_dir_count["R"]:
+        #         target_x = x + d
+        #     else:
+        #         target_x = x - d
+
+        # if y <= 500:
+        #     if fish_dir_count["T"]:
+        #         target_y = y - d
+        #     else:
+        #         target_y = y + d
+        # else:
+        #     if fish_dir_count["B"]:
+        #         target_y = y + d
+        #     else:
+        #         target_y = y - d
+
+        if light_cooldown[drone.drone_id] == 0 or (light_cooldown[drone.drone_id] <= 3 and scannable_fish):
             light = 1
-            light_cooldown = 10
+            light_cooldown[drone.drone_id] = 6
 
         target_x, target_y = target[drone.drone_id].x, target[drone.drone_id].y
 
