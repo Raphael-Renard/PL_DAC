@@ -71,8 +71,8 @@ class GameState:
     def get_possible_moves(self):
         moves = []
         if self.last_move != None:
-            board_x = self.last_move[0]//3
-            board_y = self.last_move[1]//3
+            board_x = self.last_move[0]%3
+            board_y = self.last_move[1]%3
             if type(self.boards[board_x][board_y])==list:
                 for i in range(3):
                     for j in range(3):
@@ -130,8 +130,20 @@ class GameState:
             return 0
 
 
-# Exemple
+# Exemple 1
 initial_state = GameState([[[[0 for _ in range(3)] for _ in range(3)] for _ in range(3)] for _ in range(3)])
+mcts = MonteCarloTreeSearch(initial_state)
+best_move = mcts.select_move()
+print("Best move:", best_move)
+
+
+# Exemple 2
+boards = [[[[0, 1, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[-1, 0, 0], [0, 0, 0], [0, 0, 0]]],
+          [[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[0, -1, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]]],
+          [[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[1, -1, 0], [0, 0, 0], [0, 0, 0]]]]
+initial_state = GameState(boards)
+initial_state.player=1
+initial_state.last_move=(0,6)
 mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
 print("Best move:", best_move)
