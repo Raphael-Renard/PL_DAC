@@ -13,7 +13,7 @@ Jeux choisis :
 
 
 **Ce qui a été dit :**
--
+- explications rapides des méthodes MTS et UCB
 
 
 **À faire :**
