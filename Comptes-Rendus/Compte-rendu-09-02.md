@@ -14,7 +14,8 @@
 - Début de réflexion sur l'implémentation de Mad Pod Racing
 
 **Raphaël :**
--
+- Création d'un simulateur d'une partie de morpion où 2 bots utilisant la même heuristique s'affrontent
+- Implémentation de Monte-Carlo avec stratégie UCB
 
 ---
 
