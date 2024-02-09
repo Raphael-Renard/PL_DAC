@@ -2,6 +2,7 @@
 
 ## Ce qui a été fait
 
+**Commun :**
 - Lecture du BartoSutton chapites 5-8
 
 **Eliott :**
@@ -15,8 +16,10 @@
 **Raphaël :**
 -
 
+---
+
 ## Ce qui a été dit
 
-
+---
 
 ## À faire
