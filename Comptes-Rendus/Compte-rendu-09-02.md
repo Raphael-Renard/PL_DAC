@@ -4,13 +4,19 @@
 
 - Lecture du BartoSutton chapites 5-8
 
+**Eliott :**
+-
+
 **Luc :**
 - Création et amélioration des heuristiques sur Seabed Security (toutes règles débloquées)
 - Obtention du code source de ce dernier
 - Début de réflexion sur l'implémentation de Mad Pod Racing
 
-## Ce qui a été dit :
+**Raphaël :**
+-
+
+## Ce qui a été dit
 
 
 
-## À faire :
+## À faire
