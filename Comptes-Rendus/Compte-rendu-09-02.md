@@ -21,6 +21,17 @@
 
 ## Ce qui a été dit
 
+- Résumé bref des avancements
+- Si l'implémentation des jeux est trop difficile, ne pas hésiter à changer
+- Partager les implémentations d'algorithmes (en les gardant génériques afin d'être applicables sur différents jeux)
+
 ---
 
 ## À faire
+
+- Implémenter le Q-learning sur Mad Pod Racing et Seabed Security
+    - Discrétiser l'espace
+    - Adopter une représentation relative à l'agent pour limiter la répétition d'états
+    - Suite à la discrétisation appliquer également UCB à Mad Pod Racing
+- Poursuivre la lecture du livre
+
