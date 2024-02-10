@@ -6,7 +6,7 @@
 - Lecture du BartoSutton chapites 5-8
 
 **Eliott :**
--
+- A compléter
 
 **Luc :**
 - Création et amélioration des heuristiques sur Seabed Security (toutes règles débloquées)
