@@ -1,9 +1,21 @@
 from io import StringIO
 from threading import Event, Thread
 from queue import Queue
-# import pygame
+import sys
 
-from a_renommer import *
+from player import *
+from bot import *
+
+
+def generate_checkpoints():
+    checkpoints = []
+    for _ in range(random.randint(4, 6)):
+        checkpoint = pygame.Vector2(random.randint(150, 1450), random.randint(150, 750))
+        while any(checkpoint.distance_to(checkpoint2) < 500 for checkpoint2 in checkpoints):
+            checkpoint = pygame.Vector2(random.randint(100, 1500), random.randint(100, 800))
+        checkpoints.append(checkpoint)
+
+    return checkpoints
 
 
 def game_loop():
@@ -17,7 +29,7 @@ def game_loop():
 
     checkpoints = generate_checkpoints()
 
-    player = Player(screen, pygame.Vector2(checkpoints[0]), checkpoints, player_send_q, player_receive_q)
+    player = Player("Bot un peu nul de Luc", screen, checkpoints, player_send_q, player_receive_q)
 
     while running:
         pygame.font.init()
@@ -44,14 +56,17 @@ def game_loop():
         # flip() the display to put your work on screen
         pygame.display.flip()
 
-
-
         # limits FPS to 60
         # dt is delta time in seconds since last frame, used for framerate-
         # independent physics.
-        dt = clock.tick(60) / 1000
+        dt = clock.tick(30) / 1000
 
+    end_game()
+
+
+def end_game():
     pygame.quit()
+    sys.exit()
 
 
 if __name__ == "__main__":
@@ -62,8 +77,9 @@ if __name__ == "__main__":
 
     player_send_q = Queue()
     player_receive_q = Queue()
-    # launch player thread on ../Mad-Pod-Racing.py in background
-    threads.append(Thread(target=player_loop, args=(player_send_q, player_receive_q)))
+
+    threads.append(Thread(target=bot, args=(player_send_q, player_receive_q)))
     threads[-1].start()
+
     print("Player thread started")
     game_loop()
