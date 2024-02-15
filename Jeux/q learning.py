@@ -2,17 +2,16 @@ import numpy as np
 
 class Game:
     def __init__(self):
-        self.grid_size = (0, 0)
-        self.nb_actions = 0
-        self.nb_states = 0
-        self.goal_state = (0, 0)
+        self.nb_actions = 0 # à modifier
+        self.nb_states = 0 # à modifier
+        self.goal_state = (0, 0) # à modifier
 
     def reset(self):
-        self.agent_state = (0, 0)
+        self.agent_state = (0, 0) # à modifier? (position de départ)
         return self.agent_state
 
     def step(self, action):
-        if action == 'action1':  
+        if action == 'action1':  # à compléter
             next_state = "next state"
         elif action == 'action2': 
             next_state = "next state"
