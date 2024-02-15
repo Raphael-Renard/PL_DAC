@@ -5,6 +5,7 @@ class Game:
         self.nb_actions = 0 # à modifier
         self.nb_states = 0 # à modifier
         self.goal_state = (0, 0) # à modifier
+        self.agent_state = (0,0) # à modifier
 
     def reset(self):
         self.agent_state = (0, 0) # à modifier? (position de départ)
