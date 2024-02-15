@@ -147,4 +147,3 @@ initial_state.last_move=(0,6)
 mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
 print("Best move:", best_move)
-
