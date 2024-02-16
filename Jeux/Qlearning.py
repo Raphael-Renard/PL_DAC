@@ -1,23 +1,24 @@
 import numpy as np
 
+
 class Game:
     def __init__(self):
-        self.nb_actions = 0 # à modifier
-        self.nb_states = 0 # à modifier
-        self.goal_state = (0, 0) # à modifier
-        self.agent_state = (0,0) # à modifier
+        self.nb_actions = 0  # à modifier
+        self.nb_states = 0  # à modifier
+        self.goal_state = (0, 0)  # à modifier
+        self.agent_state = (0, 0)  # à modifier
 
     def reset(self):
-        self.agent_state = (0, 0) # à modifier? (position de départ)
+        self.agent_state = (0, 0)  # à modifier? (position de départ)
         return self.agent_state
 
     def step(self, action):
         if action == 'action1':  # à compléter
             next_state = "next state"
-        elif action == 'action2': 
+        elif action == 'action2':
             next_state = "next state"
-        #...
-            
+        # ...
+
         self.agent_state = next_state
 
         if self.agent_state == self.goal_state:
@@ -28,8 +29,6 @@ class Game:
             done = False
 
         return self.agent_state, reward, done
-    
-
 
 
 def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1):

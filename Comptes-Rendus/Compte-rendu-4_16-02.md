@@ -10,6 +10,7 @@
 
 **Luc :**
 - Implémentation d'une version basique de Mad Pod Racing
+- Début d'application du Q learning sur Mad Pod Racing
 
 **Raphaël :**
 - Début d'implémentation du Q learning
