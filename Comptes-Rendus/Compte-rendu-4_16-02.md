@@ -12,7 +12,7 @@
 - Implémentation d'une version basique de Mad Pod Racing
 
 **Raphaël :**
-- A compléter
+- Début d'implémentation du Q learning
 
 ---
 
