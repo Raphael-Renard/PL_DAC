@@ -3,7 +3,7 @@
 ## Ce qui a été fait
 
 **Commun :**
-- A compléter
+- Poursuite de la lecture du livre
 
 **Eliott :**
 - A compléter
