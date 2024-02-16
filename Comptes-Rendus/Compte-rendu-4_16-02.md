@@ -13,6 +13,7 @@
 
 **Raphaël :**
 - Début d'implémentation du Q learning
+- Correction de bugs survenant quand on utilise MCTS sur codingame
 
 ---
 
