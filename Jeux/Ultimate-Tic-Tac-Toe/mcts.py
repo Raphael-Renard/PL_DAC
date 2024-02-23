@@ -123,9 +123,8 @@ class Morpion(GameState):
 
     def make_move(self, move):
         i, j = move
-        new_state = Morpion(copy.deepcopy(self.boards))
+        new_state = Morpion(self.boards.copy())
         new_state.boards[i//3][j//3][i%3][j%3] = self.player
-
         new_state.empty_boards=copy.deepcopy(self.empty_boards)
         new_state.empty_all=self.empty_all.copy()
         new_state.empty_boards[i//3][j//3].remove((i,j))
@@ -138,8 +137,6 @@ class Morpion(GameState):
                 for y in range(3):
                     if (x+3*(i//3),y+3*(j//3)) in new_state.empty_all:
                         new_state.empty_all.remove((x+3*(i//3),y+3*(j//3)))
-            
-
 
         new_state.player = -self.player
         new_state.last_move = move
@@ -167,6 +164,7 @@ class Morpion(GameState):
 
 
 
+import cProfile
 
 
 # Exemple 1
@@ -175,17 +173,19 @@ mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
 print("Best move:", best_move)
 
+cProfile.run('mcts.select_move()')
 
+"""
 # Exemple 2
-boards = np.array([[[[0, 1, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[-1, 0, 0], [0, 0, 0], [0, 0, 0]]],
+boards = np.array([[[[1, 1, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[-1, 0, 0], [0, 0, 0], [0, 0, 0]]],
           [[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[0, -1, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]]],
           [[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[1, -1, 0], [0, 0, 0], [0, 0, 0]]]])
 initial_state = Morpion(boards)
-initial_state.player=1
 initial_state.last_move=(0,6)
 mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
 print("Best move:", best_move)
+"""
 
 
 
