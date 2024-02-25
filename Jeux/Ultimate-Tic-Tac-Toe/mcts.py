@@ -116,7 +116,7 @@ class Morpion(GameState):
                 return empty
         return self.empty_all
 
-    def make_move(self, move):
+    def make_move(self, move): # crée un nouvel état
         i, j = move
         new_state = Morpion()
         new_state.boards = self.boards.copy()
@@ -135,7 +135,7 @@ class Morpion(GameState):
         new_state.last_move = move
         return new_state
     
-    def make_move_self(self, move):
+    def make_move_self(self, move): # modifie l'état actuel
         i, j = move
         self.boards[i//3][j//3][i%3][j%3] = self.player
         self.empty_all.remove((i,j))
@@ -171,7 +171,7 @@ class Morpion(GameState):
 
 import cProfile
 
-# Exemple 1
+# Exemple
 initial_state = Morpion()
 mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
@@ -365,12 +365,12 @@ while True:
 
 
     if (opponent_row, opponent_col) != (-1,-1):
-        current_state = current_state.make_move((opponent_row, opponent_col))
+        current_state.make_move_self((opponent_row, opponent_col))
      
     mcts = MonteCarloTreeSearch(current_state)
     best_move = mcts.select_move()
     print(str(best_move[0]),str(best_move[1]))
-    current_state = current_state.make_move(best_move)
+    current_state.make_move_self(best_move)
 
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
