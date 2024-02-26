@@ -1,4 +1,4 @@
-def bot(player_send_q, player_receive_q):
+def bot_heuristique(player_send_q, player_receive_q):
     # Using queues to communicate with the main process instead of stdin/stdout
 
     t = 0
@@ -41,6 +41,10 @@ def bot(player_send_q, player_receive_q):
                 # thrust = max(thrust, 50)
 
             thrust = max(thrust, 0)
+
+            if boost:
+                thrust = "BOOST"
+                boost = False
 
             player_send_q.put(f"{target_x} {target_y} {thrust}")
 
