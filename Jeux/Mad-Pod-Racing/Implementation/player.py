@@ -3,7 +3,8 @@ import pygame
 
 
 class Player:
-    def __init__(self, name, checkpoints, player_send_q, player_receive_q, screen=None, colour=None, verbose=False):
+    def __init__(self, id, name, checkpoints, player_send_q, player_receive_q, screen=None, colour=None, verbose=False):
+        self.id = id
         self.name = name
         self.screen = screen
         self.pos = pygame.Vector2(checkpoints[0])
@@ -32,7 +33,7 @@ class Player:
             print(f"{self.name} input: {target_x}, {target_y}, {thrust}")
 
         # Compute new acceleration / velocity
-        self.acc = .95 * self.acc + (pygame.Vector2(target_x, target_y) - self.pos).normalize() * thrust
+        self.acc = .981 * self.acc + (pygame.Vector2(target_x, target_y) - self.pos).normalize() * thrust
         self.vel += self.acc * dt
 
         # Limit speed
@@ -52,10 +53,10 @@ class Player:
                 if self.laps == 3:
                     if self.verbose:
                         print(f"Player {self.name} wins")
-                    return True  # End game
+                    return self.id
             self.next_checkpoint = (self.next_checkpoint + 1) % len(self.checkpoints)
 
-        return False  # Continue game
+        return 0  # Continue game
 
     def inquire_user(self):
         # Compute next checkpoint distance and angle
