@@ -7,12 +7,16 @@ from Bots.bot_heuristique import *
 from Bots.bot_simple import *
 
 if __name__ == "__main__":
-    gui = False
+    gui = True
     player_verbose = False
 
     player_types = [bot_heuristique, bot_simple]
     player_names = ["Bot heuristique", "Bot simple"]
     player_colours = ["red", "blue"]
+
+    # player_types = [bot_simple]
+    # player_names = ["Bot simple"]
+    # player_colours = ["blue"]
 
     player_threads = []
     player_queues = []

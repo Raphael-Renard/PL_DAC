@@ -1,3 +1,4 @@
+import math
 import random
 import pygame
 
@@ -9,7 +10,7 @@ class Player:
         self.screen = screen
         self.pos = pygame.Vector2(checkpoints[0])
         self.vel = pygame.Vector2(0, 0)
-        self.acc = pygame.Vector2(0, 0)
+        self.angle = self.angle_to(checkpoints[1])
         self.next_checkpoint = 1
         self.checkpoints = checkpoints
         self.laps = 0
@@ -19,35 +20,69 @@ class Player:
         self.colour = colour
         self.verbose = verbose
 
+    def distance_to(self, point):
+        return math.sqrt((self.pos.x - point.x)**2 + (self.pos.y - point.y)**2)
+
+    def angle_to(self, point):
+        d = self.distance_to(point)
+        dx = (point.x - self.pos.x) / d
+        dy = (point.y - self.pos.y) / d
+
+        a = math.acos(dx) * 180 / math.pi
+
+        if dy < 0:
+            a = 360 - a
+
+        return a
+
     def draw(self):
         pygame.draw.circle(self.screen, self.colour, self.pos, 20)
-        pygame.draw.line(self.screen, "green", self.pos, self.pos + self.vel, 5)
+        pygame.draw.line(self.screen, "green", self.pos, self.pos + self.vel/2, 5)
 
-    def update(self, dt):
-        max_speed = 150
-
+    def update(self, dt, gui=False):
         # Get player input
         target_x, target_y, thrust = self.inquire_user()
 
         if self.verbose:
             print(f"{self.name} input: {target_x}, {target_y}, {thrust}")
 
-        # Compute new acceleration / velocity
-        self.acc = .981 * self.acc + (pygame.Vector2(target_x, target_y) - self.pos).normalize() * thrust
-        self.vel += self.acc * dt
+        a = self.angle_to(self.checkpoints[self.next_checkpoint])
 
-        # Limit speed
-        if self.vel.length() > max_speed:
-            self.vel.scale_to_length(max_speed)
+        right = a - self.angle if self.angle <= a else 360 - self.angle + a
+        left = self.angle - a if self.angle >= a else self.angle + 360 - a
 
-        # Update position
-        self.pos += self.vel * dt + 0.5 * self.acc * dt**2
+        da = right if right < left else -left
+
+        if da > 18:
+            da = 18
+        elif da < -18:
+            da = -18
+
+        self.angle += da
+
+        if self.angle >= 360:
+            self.angle -= 360
+        elif self.angle < 0:
+            self.angle += 360
+
+        ra = self.angle * math.pi / 180
+
+        self.vel.x += math.cos(ra) * thrust
+        self.vel.y += math.sin(ra) * thrust
+
+        self.pos += self.vel * dt
+
+        self.pos.x = round(self.pos.x)
+        self.pos.y = round(self.pos.y)
+
+        self.vel.x = int(self.vel.x * .85)
+        self.vel.y = int(self.vel.y * .85)
 
         if self.verbose:
-            print(f"{self.name} state: {self.pos}, {self.vel}, {self.acc}")
+            print(f"{self.name} state: {self.pos=}, {self.vel=}, {self.angle=}")
 
         # Detect checkpoint reached
-        if self.pos.distance_to(self.checkpoints[self.next_checkpoint]) < 80:
+        if self.pos.distance_to(self.checkpoints[self.next_checkpoint]) < (80 if gui else 800):
             if self.next_checkpoint == 0:
                 self.laps += 1
                 if self.laps == 3:
