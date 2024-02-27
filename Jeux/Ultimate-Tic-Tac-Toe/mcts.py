@@ -1,6 +1,7 @@
 import math
 import random
 import numpy as np
+import copy
 
 class GameState():
     def __init__(self):
@@ -61,6 +62,7 @@ class MonteCarloTreeSearch:
     def __init__(self, initial_state):
         self.root = Node(initial_state)
 
+    """
     def select_move(self, simulations=100):
         for _ in range(simulations):
             node = self.root
@@ -76,14 +78,33 @@ class MonteCarloTreeSearch:
             if (child.wins / (child.visits+1e-4)) > (best_move.wins / (best_move.visits+1e-4)):
                 best_move = child
         return best_move.state.last_move
+    """
+
+    def select_move(self, simulations=1):
+        for _ in range(simulations):
+            node = self.root
+            if not node.children:
+                node.expand()
+            selected_child = node.select_child() 
+            result = self.simulate(selected_child.state)
+            selected_child.backpropagate(result)
+
+        best_move = self.root.children[0]
+        
+        for child in self.root.children:
+            if (child.wins / (child.visits+1e-4)) > (best_move.wins / (best_move.visits+1e-4)):
+                best_move = child
+        return best_move.state.last_move
+    
 
     def simulate(self, state):
+        if not state.is_terminal():
+            move = random.choice(list(state.get_possible_moves()))
+            state = state.make_move(move)
         while not state.is_terminal():
-            move = random.choice(state.get_possible_moves())
-            state = state.make_move_self(move)
-
+            move = random.choice(list(state.get_possible_moves()))
+            state.make_move_self(move)
         return state.get_result()
-
 
 
 
@@ -135,7 +156,7 @@ class Morpion(GameState):
         if np.all([self.player,self.player,self.player] == new_state.boards[big_board_x, big_board_y],axis=1).any() or np.all([self.player,self.player,self.player] == new_state.boards[big_board_x, big_board_y].T,axis=1).any() or\
                 (new_state.boards[big_board_x, big_board_y,0,0]==self.player and new_state.boards[big_board_x, big_board_y][1,1]==self.player and new_state.boards[big_board_x, big_board_y][2,2]==self.player) or\
                 (new_state.boards[big_board_x, big_board_y][2,0]==self.player and new_state.boards[big_board_x, big_board_y][1,1]==self.player and new_state.boards[big_board_x, big_board_y][0][2]==self.player):
-            
+        
             new_state.big_boards[big_board_x, big_board_y] = self.player
             new_state.empty_all -= {(x + 3 * big_board_x, y + 3 * big_board_y) for x in range(3) for y in range(3)}
 
@@ -226,12 +247,20 @@ import cProfile
 initial_state = Morpion()
 mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
-print("Best move:", best_move)
+print("Best move1:", best_move)
 
-cProfile.run('mcts.select_move()')
-cProfile.run('initial_state.make_move_self(best_move)')
-
-
+#cProfile.run('mcts.select_move()')
+#cProfile.run('initial_state.make_move_self(best_move)')
+initial_state.make_move_self(best_move)
+mcts = MonteCarloTreeSearch(initial_state)
+print("possible moves 2",initial_state.get_possible_moves())
+best_move = mcts.select_move()
+print("Best move2:",best_move)
+initial_state.make_move_self(best_move)
+mcts = MonteCarloTreeSearch(initial_state)
+print("possible moves 3",initial_state.get_possible_moves())
+best_move = mcts.select_move()
+print("Best move3:",best_move)
 
 
 
