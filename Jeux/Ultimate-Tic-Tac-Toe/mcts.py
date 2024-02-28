@@ -62,25 +62,7 @@ class MonteCarloTreeSearch:
     def __init__(self, initial_state):
         self.root = Node(initial_state)
 
-    """
-    def select_move(self, simulations=100):
-        for _ in range(simulations):
-            node = self.root
-            while not node.state.is_terminal():
-                if not node.children:
-                    node.expand()
-                node = node.select_child()
-            result = self.simulate(node.state)
-            node.backpropagate(result)
-
-        best_move = self.root.children[0]
-        for child in self.root.children:
-            if (child.wins / (child.visits+1e-4)) > (best_move.wins / (best_move.visits+1e-4)):
-                best_move = child
-        return best_move.state.last_move
-    """
-
-    def select_move(self, simulations=1):
+    def select_move(self, simulations=1000):
         for _ in range(simulations):
             node = self.root
             if not node.children:
@@ -109,6 +91,7 @@ class MonteCarloTreeSearch:
 
 
 class Morpion(GameState):
+    # empty_boards?
     def __init__(self,
                 boards=np.array([[[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]],
                                     [[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]],
@@ -122,15 +105,34 @@ class Morpion(GameState):
                         (6,0),(6,1),(6,2),(7,0),(7,1),(7,2),(8,0),(8,1),(8,2),
                         (6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5),
                         (6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)},
+                empty_boards=[[[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],
+                    [(0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5)], 
+                    [(0,6),(0,7),(0,8),(1,6),(1,7),(1,8),(2,6),(2,7),(2,8)]],
+                    [[(3,0),(3,1),(3,2),(4,0),(4,1),(4,2),(5,0),(5,1),(5,2)],
+                    [(3,3),(3,4),(3,5),(4,3),(4,4),(4,5),(5,3),(5,4),(5,5)],
+                    [(3,6),(3,7),(3,8),(4,6),(4,7),(4,8),(5,6),(5,7),(5,8)]],
+                    [[(6,0),(6,1),(6,2),(7,0),(7,1),(7,2),(8,0),(8,1),(8,2)],
+                    [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
+                    [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]],
                 big_boards=np.array([[0,0,0],[0,0,0],[0,0,0]])):
         
         GameState.__init__(self)
         self.boards = boards
         self.big_boards = big_boards # qui a gagné chaque board
+        self.empty_boards = empty_boards
         self.empty_all=empty_all
 
+    def get_possible_moves(self): # avec empty_boards
+        if self.last_move != None:
+            board_x = self.last_move[0]%3
+            board_y = self.last_move[1]%3
+            if self.empty_boards[board_x][board_y]!=[]:
+                return self.empty_boards[board_x][board_y]
+        return self.empty_all
 
-    def get_possible_moves(self):
+    
+    """
+    def get_possible_moves(self): # sans empty_boards
         if self.last_move != None:
             board_x = self.last_move[0]%3
             board_y = self.last_move[1]%3
@@ -142,6 +144,7 @@ class Morpion(GameState):
             if empty!=[]:
                 return empty
         return self.empty_all
+    """
 
     def make_move(self, move): # crée un nouvel état
         i, j = move
@@ -149,9 +152,10 @@ class Morpion(GameState):
         big_board_y = j // 3
         x = i % 3
         y = j % 3
-        new_state = Morpion(boards=self.boards.copy(),empty_all=self.empty_all.copy(),big_boards=self.big_boards.copy())
+        new_state = Morpion(boards=self.boards.copy(),empty_all=self.empty_all.copy(),empty_boards=copy.deepcopy(self.empty_boards),big_boards=self.big_boards.copy()) #
         new_state.boards[big_board_x, big_board_y,x,y] = self.player
         new_state.empty_all.remove((i,j))
+        new_state.empty_boards[big_board_x][big_board_y].remove((i,j)) #
 
         if np.all([self.player,self.player,self.player] == new_state.boards[big_board_x, big_board_y],axis=1).any() or np.all([self.player,self.player,self.player] == new_state.boards[big_board_x, big_board_y].T,axis=1).any() or\
                 (new_state.boards[big_board_x, big_board_y,0,0]==self.player and new_state.boards[big_board_x, big_board_y][1,1]==self.player and new_state.boards[big_board_x, big_board_y][2,2]==self.player) or\
@@ -159,6 +163,7 @@ class Morpion(GameState):
         
             new_state.big_boards[big_board_x, big_board_y] = self.player
             new_state.empty_all -= {(x + 3 * big_board_x, y + 3 * big_board_y) for x in range(3) for y in range(3)}
+            new_state.empty_boards[big_board_x][big_board_y] = [] #
 
         new_state.player = -self.player
         new_state.last_move = move
@@ -172,45 +177,43 @@ class Morpion(GameState):
         y = j % 3
         self.boards[big_board_x, big_board_y,x,y] = self.player
         self.empty_all.remove((i,j))
+        self.empty_boards[big_board_x][big_board_y].remove((i,j)) #
 
         if np.all([self.player,self.player,self.player] == self.boards[big_board_x, big_board_y],axis=1).any() or np.all([self.player,self.player,self.player] == self.boards[big_board_x, big_board_y].T,axis=1).any() or\
                 (self.boards[big_board_x, big_board_y,0,0]==self.player and self.boards[big_board_x, big_board_y][1,1]==self.player and self.boards[big_board_x, big_board_y][2,2]==self.player) or\
                 (self.boards[big_board_x, big_board_y][2,0]==self.player and self.boards[big_board_x, big_board_y][1,1]==self.player and self.boards[big_board_x, big_board_y][0][2]==self.player):
             self.big_boards[big_board_x, big_board_y] = self.player
             self.empty_all -= {(x + 3 * big_board_x, y + 3 * big_board_y) for x in range(3) for y in range(3)}
+            self.empty_boards[big_board_x][big_board_y] = [] #
 
         self.player = -self.player
         self.last_move = move
 
-    def is_terminal(self):
-        # Check rows and columns
-        for i in range(3):
-            if self.big_boards[i].sum() == 3 or self.big_boards[:, i].sum() == 3:
-                return True  # Player 1 wins
-            elif self.big_boards[i].sum() == -3 or self.big_boards[:, i].sum() == -3:
-                return True  # Player -1 wins
-        
-        # Check diagonals
-        if np.trace(self.big_boards) == 3 or np.trace(np.fliplr(self.big_boards)) == 3:
-            return True  # Player 1 wins
-        elif np.trace(self.big_boards) == -3 or np.trace(np.fliplr(self.big_boards)) == -3:
-            return True  # Player -1 wins
-        
-        # Check if the board is full
-        if len(self.empty_all)==0:
-            return True
-        
-        return False
 
-    """
+    
     def is_terminal(self):
-        if np.all([1,1,1] == self.big_boards, axis=1).any() or np.all([1,1,1] == self.big_boards.T, axis=1).any() or np.all(np.diagonal(self.big_boards)==[1,1,1]) or np.all(np.fliplr(self.big_boards).diagonal()==[1,1,1]) or np.all([-1,-1,-1] == self.big_boards, axis=1).any() or np.all([-1,-1,-1] == self.big_boards.T, axis=1).any() or np.all(np.diagonal(self.big_boards)==[-1,-1,-1]) or np.all(np.fliplr(self.big_boards).diagonal()==[-1,-1,-1]) or len(self.empty_all)==0:
+        for i in range(3):
+            if self.big_boards[i].sum() == 3*self.player or self.big_boards[:, i].sum() == 3*self.player:
+                return True
+        if  (self.big_boards[0,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[2,2]==self.player) or\
+            len(self.empty_all)==0 or (self.big_boards[2,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[0][2]==self.player):
             return True
         else:
             return False
-    """
+
 
     def get_result(self):
+        for i in range(3):
+            if self.big_boards[i].sum() == 3*self.player or self.big_boards[:, i].sum() == 3*self.player:
+                return self.player
+        if  (self.big_boards[0,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[2,2]==self.player) or\
+            (self.big_boards[2,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[0][2]==self.player):
+            return self.player
+        else:
+            return 0
+    
+    """
+    def get_result(self): #plus long
         # Check rows and columns
         for i in range(3):
             if self.big_boards[i].sum() == 3 or self.big_boards[:, i].sum() == 3:
@@ -227,16 +230,7 @@ class Morpion(GameState):
         # Check if the board is full
         if len(self.empty_all)==0:
             return 0
-        
-    """"
-    def get_result(self):
-        if np.all([1,1,1] == self.big_boards, axis=1).any() or np.all([1,1,1] == self.big_boards.T, axis=1).any() or np.all(np.diagonal(self.big_boards)==[1,1,1]) or np.all(np.fliplr(self.big_boards).diagonal()==[1,1,1]):
-            return 1
-        elif np.all([-1,-1,-1] == self.big_boards, axis=1).any() or np.all([-1,-1,-1] == self.big_boards.T, axis=1).any() or np.all(np.diagonal(self.big_boards)==[-1,-1,-1]) or np.all(np.fliplr(self.big_boards).diagonal()==[-1,-1,-1]):
-            return -1
-        return 0
     """
-
 
 
 
@@ -249,8 +243,9 @@ mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
 print("Best move1:", best_move)
 
-#cProfile.run('mcts.select_move()')
+cProfile.run('mcts.select_move()')
 #cProfile.run('initial_state.make_move_self(best_move)')
+"""
 initial_state.make_move_self(best_move)
 mcts = MonteCarloTreeSearch(initial_state)
 print("possible moves 2",initial_state.get_possible_moves())
@@ -261,7 +256,7 @@ mcts = MonteCarloTreeSearch(initial_state)
 print("possible moves 3",initial_state.get_possible_moves())
 best_move = mcts.select_move()
 print("Best move3:",best_move)
-
+"""
 
 
 # Sur codingame :
