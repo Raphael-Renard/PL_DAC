@@ -41,7 +41,7 @@ class Node:
         max_ucb_value = -float('inf')
         for child in self.children:
             if child.visits == 0:
-                ucb_value = float('inf') 
+                ucb_value = float('inf')
             else:
                 ucb_value = (child.wins / child.visits) + exploration_factor * math.sqrt(math.log(self.visits) / child.visits)
             if ucb_value > max_ucb_value:
@@ -67,17 +67,17 @@ class MonteCarloTreeSearch:
             node = self.root
             if not node.children:
                 node.expand()
-            selected_child = node.select_child() 
+            selected_child = node.select_child()
             result = self.simulate(selected_child.state)
             selected_child.backpropagate(result)
 
         best_move = self.root.children[0]
-        
+
         for child in self.root.children:
             if (child.wins / (child.visits+1e-4)) > (best_move.wins / (best_move.visits+1e-4)):
                 best_move = child
         return best_move.state.last_move
-    
+
 
     def simulate(self, state):
         if not state.is_terminal():
@@ -97,7 +97,7 @@ class Morpion(GameState):
                                     [[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]],
                                     [[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]]]),
                 empty_all={(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2),
-                        (0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5), 
+                        (0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5),
                         (0,6),(0,7),(0,8),(1,6),(1,7),(1,8),(2,6),(2,7),(2,8),
                         (3,0),(3,1),(3,2),(4,0),(4,1),(4,2),(5,0),(5,1),(5,2),
                         (3,3),(3,4),(3,5),(4,3),(4,4),(4,5),(5,3),(5,4),(5,5),
@@ -106,7 +106,7 @@ class Morpion(GameState):
                         (6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5),
                         (6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)},
                 empty_boards=[[[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],
-                    [(0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5)], 
+                    [(0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5)],
                     [(0,6),(0,7),(0,8),(1,6),(1,7),(1,8),(2,6),(2,7),(2,8)]],
                     [[(3,0),(3,1),(3,2),(4,0),(4,1),(4,2),(5,0),(5,1),(5,2)],
                     [(3,3),(3,4),(3,5),(4,3),(4,4),(4,5),(5,3),(5,4),(5,5)],
@@ -115,7 +115,7 @@ class Morpion(GameState):
                     [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
                     [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]],
                 big_boards=np.array([[0,0,0],[0,0,0],[0,0,0]])):
-        
+
         GameState.__init__(self)
         self.boards = boards
         self.big_boards = big_boards # qui a gagné chaque board
@@ -130,7 +130,7 @@ class Morpion(GameState):
                 return self.empty_boards[board_x][board_y]
         return self.empty_all
 
-    
+
     """
     def get_possible_moves(self): # sans empty_boards
         if self.last_move != None:
@@ -160,7 +160,7 @@ class Morpion(GameState):
         if np.all([self.player,self.player,self.player] == new_state.boards[big_board_x, big_board_y],axis=1).any() or np.all([self.player,self.player,self.player] == new_state.boards[big_board_x, big_board_y].T,axis=1).any() or\
                 (new_state.boards[big_board_x, big_board_y,0,0]==self.player and new_state.boards[big_board_x, big_board_y][1,1]==self.player and new_state.boards[big_board_x, big_board_y][2,2]==self.player) or\
                 (new_state.boards[big_board_x, big_board_y][2,0]==self.player and new_state.boards[big_board_x, big_board_y][1,1]==self.player and new_state.boards[big_board_x, big_board_y][0][2]==self.player):
-        
+
             new_state.big_boards[big_board_x, big_board_y] = self.player
             new_state.empty_all -= {(x + 3 * big_board_x, y + 3 * big_board_y) for x in range(3) for y in range(3)}
             new_state.empty_boards[big_board_x][big_board_y] = [] #
@@ -168,7 +168,7 @@ class Morpion(GameState):
         new_state.player = -self.player
         new_state.last_move = move
         return new_state
-    
+
     def make_move_self(self, move): # modifie l'état actuel
         i, j = move
         big_board_x = i // 3
@@ -190,16 +190,29 @@ class Morpion(GameState):
         self.last_move = move
 
 
-    
-    def is_terminal(self):
-        for i in range(3):
-            if self.big_boards[i].sum() == 3*self.player or self.big_boards[:, i].sum() == 3*self.player:
-                return True
-        if  (self.big_boards[0,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[2,2]==self.player) or\
-            len(self.empty_all)==0 or (self.big_boards[2,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[0][2]==self.player):
-            return True
-        else:
-            return False
+
+    # def is_terminal(self):
+    #     for i in range(3):
+    #         if self.big_boards[i].sum() == 3*self.player or self.big_boards[:, i].sum() == 3*self.player:
+    #             return True
+    #     if  (self.big_boards[0,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[2,2]==self.player) or\
+    #         len(self.empty_all)==0 or (self.big_boards[2,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[0][2]==self.player):
+    #         return True
+    #     else:
+    #         return False
+
+    def is_terminal(self, move):
+        # Check ligne et colonne
+        if abs(self.big_boards[move[0]].sum()) == 3 or abs(self.big_boards[:, move[1]].sum()) == 3:
+            return self.player
+
+        # Check diagonale
+        if move[0] + move[1] % 2 == 0:
+            if abs(self.big_boards[0, 0] + self.big_boards[1, 1] + self.big_boards[2, 2]) == 3 or abs(self.big_boards[2, 0] + self.big_boards[1, 1] + self.big_boards[0, 2]) == 3:
+                return self.player
+
+        return 0
+
 
 
     def get_result(self):
@@ -211,7 +224,7 @@ class Morpion(GameState):
             return self.player
         else:
             return 0
-    
+
     """
     def get_result(self): #plus long
         # Check rows and columns
