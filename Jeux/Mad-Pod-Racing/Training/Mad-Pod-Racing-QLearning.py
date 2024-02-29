@@ -105,8 +105,6 @@ class MadPodRacingQLearning(Game):
         self.player_state = self.discretiser_etat()
 
     def discretiser_etat(self):
-        # etats possibles 20*20*20 = 8000
-
         distance_to_checkpoint = max(8000, int(self.checkpoint_pos.distance_to(self.player_pos)))
         distance_to_checkpoint //= 800  # 8000 values / 800 -> 10 values
 
@@ -146,7 +144,7 @@ class MadPodRacingQLearning(Game):
 
         dt = 1
 
-        a = angle_to(self.player_pos, self.checkpoint_pos)
+        a = angle_to(self.player_pos, (target_x, target_y))
 
         right = a - self.angle if self.angle <= a else 360 - self.angle + a
         left = self.angle - a if self.angle >= a else self.angle + 360 - a
