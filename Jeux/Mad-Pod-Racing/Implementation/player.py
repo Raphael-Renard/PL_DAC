@@ -21,9 +21,11 @@ class Player:
         self.verbose = verbose
 
     def distance_to(self, point):
+        # Computes the distance between the player and a given point
         return math.sqrt((self.pos.x - point.x)**2 + (self.pos.y - point.y)**2)
 
     def angle_to(self, point):
+        # Computes the angle between the player and a given point
         d = self.distance_to(point)
         dx = (point.x - self.pos.x) / d
         dy = (point.y - self.pos.y) / d
@@ -36,6 +38,7 @@ class Player:
         return a
 
     def draw(self):
+        # Displays the player on the screen
         pygame.draw.circle(self.screen, self.colour, self.pos, 20)
         pygame.draw.line(self.screen, "green", self.pos, self.pos + self.vel/2, 5)
 
@@ -46,6 +49,7 @@ class Player:
         if self.verbose:
             print(f"{self.name} input: {target_x}, {target_y}, {thrust}")
 
+        # Reorient the pod (max 18 degrees)
         a = self.angle_to(self.checkpoints[self.next_checkpoint])
 
         right = a - self.angle if self.angle <= a else 360 - self.angle + a
@@ -64,6 +68,8 @@ class Player:
             self.angle -= 360
         elif self.angle < 0:
             self.angle += 360
+
+        # Update player position and velocity
 
         ra = self.angle * math.pi / 180
 
