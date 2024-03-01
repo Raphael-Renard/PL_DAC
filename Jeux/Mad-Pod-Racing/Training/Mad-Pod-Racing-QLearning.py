@@ -1,7 +1,7 @@
 import math
 import pickle
 import random
-from Qlearning import q_learning, Game
+from Qlearning import q_learning#, Game
 import numpy as np
 import pygame
 from Jeux.Qlearning import Game
@@ -105,18 +105,18 @@ class MadPodRacingQLearning(Game):
         self.player_state = self.discretiser_etat()
 
     def discretiser_etat(self):
-        distance_to_checkpoint = max(8000, int(self.checkpoint_pos.distance_to(self.player_pos)))
+        distance_to_checkpoint = min(8000, int(self.checkpoint_pos.distance_to(self.player_pos)))
         distance_to_checkpoint //= 800  # 8000 values / 800 -> 10 values
 
         checkpoint_angle = angle_to(self.player_pos, self.checkpoint_pos)
-        angle_to_checkpoint = diff_angle(self.angle, checkpoint_angle)
+        angle_to_checkpoint = diff_angle(self.angle, checkpoint_angle) % 360
         angle_to_checkpoint //= 36  # 360 values / 36 -> 10 values
 
-        velocity_length = max(500, int(self.velocity.length()))
+        velocity_length = min(500, int(self.velocity.length()))
         velocity_length //= 100  # 500 values / 100 -> 5 values
 
         velocity_angle = angle_to(self.player_pos, self.player_pos + self.velocity)
-        angle_to_velocity = diff_angle(self.angle, velocity_angle)
+        angle_to_velocity = diff_angle(self.angle, velocity_angle) % 360
         angle_to_velocity //= 36  # 360 values / 36 -> 10 values
 
         pol_next_checkpoint = (int(distance_to_checkpoint / 5), int(angle_to_checkpoint / 5))  # 10*10 = 100 values
@@ -134,13 +134,13 @@ class MadPodRacingQLearning(Game):
         self.player_state = self.discretiser_etat()
         return self.player_state
 
-    def step(self, action):
+    def step(self, action, verbose=False):
 
         thrust = (action // 10) * 25
-        angle = (action % 10) * 36
+        angle = (self.angle + (action % 10) * 36) % 360
 
-        target_x = 1000 * math.cos(math.radians(angle))
-        target_y = 1000 * math.sin(math.radians(angle))
+        target_x = self.player_pos.x + 10000 * math.cos(math.radians(angle))
+        target_y = self.player_pos.y + 10000 * math.sin(math.radians(angle))
 
         dt = 1
 
@@ -168,21 +168,24 @@ class MadPodRacingQLearning(Game):
         self.velocity.x += math.cos(ra) * thrust
         self.velocity.y += math.sin(ra) * thrust
 
-        print("player_pos before step: ", self.player_pos)
+        if verbose:
+            print("player_pos before step: ", self.player_pos)
 
         self.player_pos += self.velocity * dt
 
         self.player_pos.x = round(self.player_pos.x)
         self.player_pos.y = round(self.player_pos.y)
 
-        print("player_pos after step: ", self.player_pos)
+        if verbose:
+            print("player_pos after step: ", self.player_pos)
 
         self.velocity.x = int(self.velocity.x * .85)
         self.velocity.y = int(self.velocity.y * .85)
 
         distance_to_checkpoint = self.player_pos.distance_to(self.checkpoint_pos)
 
-        print("distance_to_checkpoint :", distance_to_checkpoint)
+        if verbose:
+            print("distance_to_checkpoint :", distance_to_checkpoint)
 
         # on utilise la distance entre le pod et le cheickpoint poour definir la récompense 
         if distance_to_checkpoint < 800:
@@ -209,7 +212,7 @@ with open('q_table.pkl', 'wb') as f:
 
 # Pour juste tester la qtable enregistrée décommenter le load et commenter le qlearning et dump
 
-# # Load q_table
+# Load q_table
 # with open('q_table.pkl', 'rb') as f:
 #     q_table = pickle.load(f)
 
@@ -218,4 +221,5 @@ state = env.reset()
 done = False
 while not done:
     action = np.argmax(q_table[state])
-    state, reward, done = env.step(action)
+    print(action)
+    state, reward, done = env.step(action, verbose=True)
