@@ -122,7 +122,7 @@ def game_loop_terminal(player_queues, player_names, player_verbose):
             t = "timeout"
             break
 
-    print(f"{t=}")
+    # print(f"{t=}")
     return win
 
 
