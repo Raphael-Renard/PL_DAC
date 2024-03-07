@@ -2,6 +2,7 @@
 
 ## Ce qui a été fait
 
+- Qlearning : Amélioration de la discrétisation -> le bot adopte des trajectoires correctes
 
 ---
 
