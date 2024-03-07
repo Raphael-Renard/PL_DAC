@@ -7,61 +7,6 @@ import pygame
 from Jeux.Qlearning import Game
 
 
-# class MadPodRacingQLearning(Game):
-#     def __init__(self):
-#         super().__init__()
-#         self.nb_actions = 50
-#         self.nb_states = 25000
-#         self.player_pos = pygame.Vector2(random.randint(150, 1450), random.randint(150, 750))
-#         self.checkpoint_pos = pygame.Vector2(random.randint(150, 1450), random.randint(150, 750))
-#         self.velocity = pygame.Vector2(random.randint(0, 360), random.randint(0, 360))
-#         self.acceleration = pygame.Vector2(random.randint(-360, 360), random.randint(-360, 360))
-#         self.player_state = self.discretiser_etat(self.player_pos, self.velocity, self.acceleration, self.checkpoint_pos)
-#
-#     def discretiser_etat(self, pos: pygame.Vector2, velocity: pygame.Vector2, acceleration: pygame.Vector2, next_checkpoint: pygame.Vector2):
-#         pol_next_checkpoint = next_checkpoint.distance_to(pos) // 1800, next_checkpoint.angle_to(velocity) // 36
-#         pol_velocity = velocity.length() // 50, 0
-#         pol_acceleration = acceleration.length() // 100, acceleration.angle_to(velocity) // 72
-#         return pol_next_checkpoint, pol_velocity, pol_acceleration
-#
-#     def reset(self):
-#         player_pos = pygame.Vector2(random.randint(1500, 14500), random.randint(1500, 7500))
-#         checkpoint_pos = pygame.Vector2(random.randint(1500, 14500), random.randint(1500, 7500))
-#         velocity = pygame.Vector2(random.randint(0, 3600), random.randint(0, 3600))
-#         acceleration = pygame.Vector2(random.randint(-3600, 3600), random.randint(-3600, 3600))
-#         self.player_state = self.discretiser_etat(player_pos, velocity, acceleration, checkpoint_pos)
-#
-#     def step(self, action):
-#         thrust = (action // 10) * 25
-#         angle = (action % 10) * 36
-#
-#         target_x = thrust * math.cos(math.radians(angle))
-#         target_y = thrust * math.sin(math.radians(angle))
-#
-#         dt = 1/60
-#
-#         self.acceleration = .984 * self.acceleration + (pygame.Vector2(target_x, target_y) - self.pos).normalize() * thrust
-#         self.velocity += self.acceleration * dt
-#
-#         max_speed = 500
-#
-#         # Limit speed
-#         if self.velocity.length() > max_speed:
-#             self.velocity.scale_to_length(max_speed)
-#
-#         # Update position
-#         self.player_pos += self.velocity * dt + 0.5 * self.acceleration * dt**2
-#
-#         self.player_state = self.discretiser_etat(self.player_pos, self.velocity, self.acceleration, self.checkpoint_pos)
-#
-#         if self.player_pos.distance_to(self.checkpoint_pos) < 800:
-#             done = True
-#         else:
-#             done = False
-#
-#         return self.player_state, -1, done
-
-
 # autres solutions faire varier la discretisation en fonction de la distance aux cheickpoints 
 # utiliser dico a la place de table de hachage
 def distance_to(p1, p2):
@@ -75,7 +20,7 @@ def angle_to(p1, p2):
     dx = (p2[0] - p1[0]) / d
     dy = (p2[1] - p1[1]) / d
 
-    a = math.acos(dx) * 180 / math.pi
+    a = int(math.acos(dx) * 180 / math.pi)
 
     if dy < 0:
         a = 360 - a
@@ -90,11 +35,53 @@ def diff_angle(a1, a2):
     return right if right < left else -left
 
 
+def discretiser_angle(angle):
+    # Limits to a 90° vision
+    if angle < -45:
+        angle = -45
+    elif angle > 45:
+        angle = 45
+
+    # Discretize into 9 values ranging from -4 to 4
+    angle //= 10
+    if angle < 0:
+        angle -= 1
+
+    return angle
+
+
+def discretiser_etat(checkpoint_pos, player_pos, angle, velocity):
+    max_dist = 8000
+    distance_intervals = np.exp(np.log(max_dist - 800) * np.arange(.1, 1.1, .1))
+
+    distance_to_checkpoint = checkpoint_pos.distance_to(player_pos) - 800
+    dcheckpoint_disc = 0
+    while dcheckpoint_disc < 9 and distance_to_checkpoint < distance_intervals[dcheckpoint_disc]:
+        dcheckpoint_disc += 1
+
+    checkpoint_angle = angle_to(player_pos, checkpoint_pos)
+    angle_to_checkpoint = diff_angle(angle, checkpoint_angle)
+
+    acheckpoint_disc = discretiser_angle(angle_to_checkpoint)
+
+    velocity_length = min(500, int(velocity.length()))
+    velocity_length //= 100  # 500 values / 100 -> 5 values
+
+    velocity_angle = angle_to(player_pos, player_pos + velocity)
+    angle_to_velocity = diff_angle(angle, velocity_angle)
+    avelocity_disc = discretiser_angle(angle_to_velocity)
+
+    pol_next_checkpoint = (dcheckpoint_disc, acheckpoint_disc)  # 10*10 = 100 values
+    pol_velocity = (velocity_length, avelocity_disc)  # 5*10 = 50 values
+
+    return pol_next_checkpoint, pol_velocity  # 100 * 50 = 5000 values
+
+
 class MadPodRacingQLearning(Game):
     def __init__(self):
         super().__init__()
         self.nb_actions = 50
-        self.nb_states = 5000
+        self.nb_states = 4050
 
         self.player_pos = pygame.Vector2(random.randint(1500, 14500), random.randint(1500, 7500))
         self.checkpoint_pos = pygame.Vector2(random.randint(1500, 14500), random.randint(1500, 7500))
@@ -102,27 +89,7 @@ class MadPodRacingQLearning(Game):
         self.angle = random.randint(0, 359)
         self.velocity = pygame.Vector2(random.randint(0, 400), random.randint(0, 400))
 
-        self.player_state = self.discretiser_etat()
-
-    def discretiser_etat(self):
-        distance_to_checkpoint = min(8000, int(self.checkpoint_pos.distance_to(self.player_pos)))
-        distance_to_checkpoint //= 800  # 8000 values / 800 -> 10 values
-
-        checkpoint_angle = angle_to(self.player_pos, self.checkpoint_pos)
-        angle_to_checkpoint = diff_angle(self.angle, checkpoint_angle) % 360
-        angle_to_checkpoint //= 36  # 360 values / 36 -> 10 values
-
-        velocity_length = min(500, int(self.velocity.length()))
-        velocity_length //= 100  # 500 values / 100 -> 5 values
-
-        velocity_angle = angle_to(self.player_pos, self.player_pos + self.velocity)
-        angle_to_velocity = diff_angle(self.angle, velocity_angle) % 360
-        angle_to_velocity //= 36  # 360 values / 36 -> 10 values
-
-        pol_next_checkpoint = (int(distance_to_checkpoint / 5), int(angle_to_checkpoint / 5))  # 10*10 = 100 values
-        pol_velocity = (velocity_length, angle_to_velocity)  # 5*10 = 50 values
-
-        return pol_next_checkpoint, pol_velocity  # 100 * 50 = 5000 values
+        self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.velocity)
 
     def reset(self):
         self.player_pos = pygame.Vector2(random.randint(1500, 14500), random.randint(1500, 7500))
@@ -131,13 +98,14 @@ class MadPodRacingQLearning(Game):
         self.angle = random.randint(0, 359)
         self.velocity = pygame.Vector2(random.randint(0, 400), random.randint(0, 400))
 
-        self.player_state = self.discretiser_etat()
+        self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.velocity)
         return self.player_state
 
     def step(self, action, verbose=False):
+        angles = [-18, -11, -6, -3, -1, 1, 3, 6, 11, 18]
 
         thrust = (action // 10) * 25
-        angle = (self.angle + (action % 10) * 36) % 360
+        angle = (self.angle + angles[action % 10]) % 360
 
         target_x = self.player_pos.x + 10000 * math.cos(math.radians(angle))
         target_y = self.player_pos.y + 10000 * math.sin(math.radians(angle))
@@ -193,7 +161,7 @@ class MadPodRacingQLearning(Game):
         else:
             reward = -distance_to_checkpoint / 100
 
-        self.player_state = self.discretiser_etat()
+        self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.velocity)
         # fin 
         if distance_to_checkpoint < 800:
             done = True
@@ -203,23 +171,24 @@ class MadPodRacingQLearning(Game):
         return self.player_state, reward, done
 
 
+new_qtable = True
+nb_tests = 10000
+
 env = MadPodRacingQLearning()
-q_table = q_learning(env)
 
-# Dump q_table
-with open('q_table.pkl', 'wb') as f:
-    pickle.dump(q_table, f)
+if new_qtable:
+    q_table = q_learning(env, num_episodes=100000)
 
-# Pour juste tester la qtable enregistrée décommenter le load et commenter le qlearning et dump
+    # Dump q_table
+    with open('q_table.pkl', 'wb') as f:
+        pickle.dump(q_table, f)
 
-# Load q_table
-# with open('q_table.pkl', 'rb') as f:
-#     q_table = pickle.load(f)
+else:
+    # Load q_table
+    with open('q_table.pkl', 'rb') as f:
+        q_table = pickle.load(f)
 
 # Test de l'agent entraîné
-state = env.reset()
-done = False
-while not done:
-    action = np.argmax(q_table[state])
-    print(action)
-    state, reward, done = env.step(action, verbose=True)
+times = np.array([env.test(q_table, 100) for _ in range(nb_tests)])
+
+print(f"Pourcentage de timeout : {round(len(times[times==-1]) / nb_tests, 4) * 100}\nPourcentage d'états non reconnus : {round(len(times[times==-2]) / nb_tests, 4) * 100}\nNombre d'itérations moyen : {times[times>=0].mean()}")

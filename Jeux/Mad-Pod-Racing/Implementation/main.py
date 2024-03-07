@@ -5,14 +5,15 @@ from game import *
 
 from Bots.bot_heuristique import *
 from Bots.bot_simple import *
+from Bots.bot_qlearning import *
 
 if __name__ == "__main__":
     gui = True
     player_verbose = False
 
-    player_types = [bot_heuristique, bot_simple]
-    player_names = ["Bot heuristique", "Bot simple"]
-    player_colours = ["red", "blue"]
+    player_types = [bot_heuristique, bot_simple, bot_qlearning]
+    player_names = ["Bot heuristique", "Bot simple", "Bot qlearning"]
+    player_colours = ["red", "blue", "yellow"]
 
     # player_types = [bot_simple]
     # player_names = ["Bot simple"]

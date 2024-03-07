@@ -7,9 +7,9 @@ def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verb
         print(f"Episode {episode + 1} / {num_episodes}")
         state = game.reset()
         done = False
-        t=0
+        t = 0
         while not done:
-            t+=1
+            t += 1
             if verbose:
                 print(f"Itération {t}")
             if verbose:
@@ -59,5 +59,7 @@ def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verb
             if verbose:
                 print(q_table)
                 print("\n")
+
+        print(f"{t} itérations")
 
     return q_table

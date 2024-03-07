@@ -30,6 +30,25 @@ class Game:
 
         return self.agent_state, reward, done
 
+    def test(self, q_table, timeout):
+        state = self.reset()
+        done = False
+        time = 0
+
+        while not done:
+            time += 1
+            if time == timeout:
+                return -1
+
+            try:
+                action = np.argmax(q_table[state])
+            except KeyError:
+                print(state)
+                return -2
+            state, reward, done = self.step(action)
+
+        return time
+
 
 def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1):
     q_table = np.zeros((game.nb_states, game.nb_actions))
