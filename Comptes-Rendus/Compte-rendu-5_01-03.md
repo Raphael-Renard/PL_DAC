@@ -21,10 +21,20 @@
 
 ## Ce qui a été dit
 
-
+- Qlearning
+  - Reward : comparer une fonction basée sur la distance et une prenant en compte le temps
+  - Discrétisation :
+    - Décrire les distances/angles de manière non uniforme
+    - Angles : garder un cône de 90 degrés (45 de chaque côté)
+- Ultimate Tic Tac Toe :
+  - cprofile : descendre dans la liste pour avoir les fonctions qui font appel aux méthodes numpy
+  - génération de nombres aléatoires : générer un grand nombre et le parcourir en shiftant pour chaque génération
 
 ---
 
 ## À faire
 
+- Tester différents scénarios avec le q-learning pour le faire marcher
+- Continuer d'optimiser UCT
+- Commencer à réfléchir à l'utilisation de réseaux de neurones
 
