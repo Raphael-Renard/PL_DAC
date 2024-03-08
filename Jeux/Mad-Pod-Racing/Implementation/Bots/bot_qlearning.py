@@ -90,7 +90,7 @@ def bot_qlearning(player_send_q, player_receive_q):
     t = 0
     x, y = 0, 0
 
-    with open("/Users/luc/Documents/Master/PLDAC/Jeux/Mad-Pod-Racing/Training/q_table.pkl", "rb") as f:
+    with open("../Training/q_table.pkl", "rb") as f:
         qtable = pickle.load(f)
 
     angle = None
