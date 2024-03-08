@@ -9,6 +9,7 @@ from Bots.bot_qlearning import *
 
 if __name__ == "__main__":
     gui = True
+    # gui = False
     player_verbose = False
 
     player_types = [bot_heuristique, bot_simple, bot_qlearning]
@@ -34,12 +35,16 @@ if __name__ == "__main__":
     else:
         win_count = [0] * len(player_names)
         nb_games = 1000
+        progress = np.arange(0, nb_games, nb_games // 10)
         for i in range(nb_games):
             win = game_loop_terminal(player_queues, player_names, player_verbose)
             for w in win:
-                win_count[w-1] += 1
+                win_count[w - 1] += 1
+
+            if i in progress:
+                print(f"{i / nb_games * 100:.0f}%")
 
         print(f"Win count:")
         lenmax = max([len(n) for n in player_names])
         for i, w in enumerate(win_count):
-            print(f"\t{player_names[i]} {' ' * (lenmax - len(player_names[i]))}: {w} \t- {w/nb_games*100:.2f}%")
+            print(f"\t{player_names[i]} {' ' * (lenmax - len(player_names[i]))}: {w} \t- {w / nb_games * 100:.2f}%")

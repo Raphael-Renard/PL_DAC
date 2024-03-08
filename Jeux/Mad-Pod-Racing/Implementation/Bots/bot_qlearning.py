@@ -124,7 +124,7 @@ def bot_qlearning(player_send_q, player_receive_q):
 
             target_x, target_y, thrust = decode_action(action, angle, (x, y))
 
-            player_send_q.put(f"{target_x} {target_y} {thrust}")
+            player_send_q.put(f"{target_x} {target_y} {thrust if t != 1 else 'BOOST'}")
 
         except Exception as e:
             print(f"Error: {e}")

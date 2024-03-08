@@ -62,9 +62,9 @@ def game_loop_gui(player_queues, player_names, player_colours, player_verbose):
     for i, (player_send_q, player_receive_q) in enumerate(player_queues):
         players.append(Player(i + 1, player_names[i], checkpoints, player_send_q, player_receive_q, screen=screen, colour=player_colours[i], verbose=player_verbose))
 
-    t=0
+    t = 0
     while running:
-        t+=1
+        t += 1
         pygame.font.init()
         # poll for events
         # pygame.QUIT event means the user clicked X to close your window

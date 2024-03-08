@@ -40,12 +40,12 @@ class Player:
     def draw(self):
         # Displays the player on the screen
         pygame.draw.polygon(self.screen, self.colour, [
-            self.pos + pygame.Vector2(30, 0).rotate(self.angle),
-            self.pos + pygame.Vector2(30, 0).rotate(self.angle + 150),
-            self.pos + pygame.Vector2(30, 0).rotate(self.angle - 150)
+                self.pos + pygame.Vector2(30, 0).rotate(self.angle),
+                self.pos + pygame.Vector2(30, 0).rotate(self.angle + 150),
+                self.pos + pygame.Vector2(30, 0).rotate(self.angle - 150)
         ])
         # pygame.draw.circle(self.screen, self.colour, self.pos, 20)
-        pygame.draw.line(self.screen, "green", self.pos, self.pos + self.vel/4, 5)
+        pygame.draw.line(self.screen, "green", self.pos, self.pos + self.vel / 4, 5)
 
     def update(self, dt, gui=False):
         # Get player input
