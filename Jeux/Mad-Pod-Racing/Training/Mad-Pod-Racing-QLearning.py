@@ -105,6 +105,8 @@ class MadPodRacingQLearning(Game):
         angles = [-18, -11, -6, -3, -1, 1, 3, 6, 11, 18]
 
         thrust = (action // 10) * 25
+        if thrust == 0:
+            thrust = 1
         angle = (self.angle + angles[action % 10]) % 360
 
         target_x = self.player_pos.x + 10000 * math.cos(math.radians(angle))
@@ -159,7 +161,7 @@ class MadPodRacingQLearning(Game):
         if distance_to_checkpoint < 800:
             reward = 100
         else:
-            reward = -distance_to_checkpoint / 100
+            reward = -distance_to_checkpoint / 100 + self.velocity.length() / 100
 
         self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.velocity)
         # fin 

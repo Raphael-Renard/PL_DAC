@@ -8,7 +8,7 @@ from Bots.bot_simple import *
 from Bots.bot_qlearning import *
 
 if __name__ == "__main__":
-    gui = False
+    gui = True
     player_verbose = False
 
     player_types = [bot_heuristique, bot_simple, bot_qlearning]

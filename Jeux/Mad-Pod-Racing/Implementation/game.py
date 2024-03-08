@@ -89,6 +89,12 @@ def game_loop_gui(player_queues, player_names, player_colours, player_verbose):
             if end:
                 running = False
 
+        # Display player colour and name at top left corner
+        for i, player in enumerate(players):
+            myfont = pygame.font.Font(None, 36)
+            label = myfont.render(f"{player.name}", 1, player.colour)
+            screen.blit(label, (10, 10 + i * 40))
+
         # flip() the display to put your work on screen
         pygame.display.flip()
 
