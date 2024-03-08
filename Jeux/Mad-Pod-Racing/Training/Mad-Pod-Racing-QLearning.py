@@ -173,7 +173,7 @@ class MadPodRacingQLearning(Game):
         if distance_to_checkpoint < 800:
             reward = 100
         else:
-            reward = -distance_to_checkpoint * 10
+            reward = -distance_to_checkpoint * 23
 
         self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.velocity)
         # fin 

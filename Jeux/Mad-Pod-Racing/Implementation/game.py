@@ -101,7 +101,8 @@ def game_loop_gui(player_queues, player_names, player_colours, player_verbose):
         # limits FPS to 60
         # dt is delta time in seconds since last frame, used for framerate-
         # independent physics.
-        dt = clock.tick(10) / 1100
+        clock.tick(10)
+        dt = 1/10
 
     print(f"{t=}")
     end_game(True)
