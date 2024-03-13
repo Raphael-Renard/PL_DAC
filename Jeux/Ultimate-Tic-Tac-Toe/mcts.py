@@ -2,7 +2,8 @@ import math
 import random
 import numpy as np
 import copy
-import sys
+import csv
+
 
 class GameState():
     def __init__(self):
@@ -62,14 +63,18 @@ class Node:
 class MonteCarloTreeSearch:
     def __init__(self, initial_state):
         self.root = Node(initial_state)
+        self.played_games = []  # Liste pour stocker les parties jouées
 
-    def select_move(self, simulations=112):
+    def select_move(self, simulations=10000):
         for _ in range(simulations):
             node = self.root
+            game_moves = []  # Liste pour stocker les coups de chaque partie
             if not node.children:
                 node.expand()
             selected_child = node.select_child()
-            result = self.simulate(selected_child.state)
+            game_moves.append(selected_child.state.last_move)  # Ajouter le coup à la liste des coups de la partie
+            result = self.simulate(selected_child.state,game_moves)
+            self.played_games.append((game_moves, result))  # Ajouter les coups et le résultat à la liste des parties jouées
             selected_child.backpropagate(result)
 
         best_move = self.root.children[0]
@@ -79,27 +84,27 @@ class MonteCarloTreeSearch:
                 best_move = child
         return best_move.state.last_move
 
-    """
-    def simulate(self, state):
-        if not state.is_terminal():
-            move = random.choice(list(state.get_possible_moves()))
-            state = state.make_move(move)
-        while not state.is_terminal():
-            move = random.choice(list(state.get_possible_moves()))
-            state.make_move_self(move)
-        return state.get_result()
-    """
 
-    def simulate(self, state):
+    def simulate(self, state,game_moves=[]):
         move = state.last_move
         if not state.is_terminal((move[0]//3,move[1]//3)):
             move = random.choice(list(state.get_possible_moves()))
+            game_moves.append(move)
             state = state.make_move(move)
         terminal = state.is_terminal((move[0]//3,move[1]//3))
         while not terminal:
             move = random.choice(list(state.get_possible_moves()))
+            game_moves.append(move)
             terminal = state.make_move_self(move)
         return state.get_result()
+    
+    def save_played_games(self, filename):
+        with open(filename, 'a', newline='') as file:
+            writer = csv.writer(file)
+            if file.tell() == 0:  # Check if the file is empty
+                writer.writerow(["Moves", "Result"])
+            for moves, result in self.played_games:
+                writer.writerow([moves, result])
 
 
 class Morpion(GameState):
@@ -236,6 +241,8 @@ initial_state = Morpion()
 mcts = MonteCarloTreeSearch(initial_state)
 best_move = mcts.select_move()
 print("Best move1:", best_move)
+
+mcts.save_played_games("parties_uttt.csv")
 
 cProfile.run('mcts.select_move()')
 
