@@ -6,64 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 from collections import deque
 
-
-class DQN(nn.Module):
-    def __init__(self, state_size, action_size):
-        super(DQN, self).__init__()
-        self.state_size = state_size
-        self.action_size = action_size
-        self.memory = deque(maxlen=2000)
-        self.gamma = 0.95  # discount rate
-        self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        self.model = self._build_model()
-
-    def _build_model(self):
-        model = nn.Sequential(
-            nn.Linear(self.state_size, 24),
-            nn.ReLU(),
-            nn.Linear(24, 24),
-            nn.ReLU(),
-            nn.Linear(24, self.action_size)
-        )
-        return model
-
-    def forward(self, x):
-        return self.model(x)
-
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
-
-    def act(self, state):
-        if np.random.rand() <= self.epsilon:
-            return random.choice(state)
-        state = torch.FloatTensor(state).unsqueeze(0)
-        act_values = self.forward(state)
-        return np.argmax(act_values.detach().numpy())
-
-    def replay(self, batch_size):
-        if len(self.memory) < batch_size:
-            return
-        minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
-            target = reward
-            if not done:
-                next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
-                target = (reward + self.gamma * torch.max(self.forward(next_state_tensor)).item())
-            state_tensor = torch.FloatTensor(state).unsqueeze(0)
-            target_f = self.forward(state_tensor).squeeze(0).detach().numpy()
-            target_f[action] = target
-            target_f = torch.FloatTensor(target_f)
-            self.model.train()
-            self.model.zero_grad()
-            loss = nn.MSELoss()(self.forward(state_tensor), target_f.unsqueeze(0))
-            loss.backward()
-            optimizer.step()
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-
-
 class GameState():
     def __init__(self):
         self.player = 1
@@ -83,7 +25,18 @@ class GameState():
 
 
 class MorpionDQN(GameState):
-    def __init__(self, boards, big_boards, empty_boards, empty_all):
+    def __init__(self,boards=np.zeros((3, 3, 3, 3), dtype=int),
+                  big_boards=np.zeros((3, 3), dtype=int),
+                  empty_boards=[[[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],
+                    [(0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5)],
+                    [(0,6),(0,7),(0,8),(1,6),(1,7),(1,8),(2,6),(2,7),(2,8)]],
+                    [[(3,0),(3,1),(3,2),(4,0),(4,1),(4,2),(5,0),(5,1),(5,2)],
+                    [(3,3),(3,4),(3,5),(4,3),(4,4),(4,5),(5,3),(5,4),(5,5)],
+                    [(3,6),(3,7),(3,8),(4,6),(4,7),(4,8),(5,6),(5,7),(5,8)]],
+                    [[(6,0),(6,1),(6,2),(7,0),(7,1),(7,2),(8,0),(8,1),(8,2)],
+                    [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
+                    [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]],
+                  empty_all={(i, j) for i in range(9) for j in range(9)}):
         super().__init__()
         self.boards = boards
         self.big_boards = big_boards
@@ -193,15 +146,113 @@ class MorpionDQN(GameState):
             return 0
 
     def step(self, action):
-        # Apply the action to the environment and obtain the next state, reward, and whether the episode is done
         self.make_move_self(action)
-        reward = self.calculate_reward(action)  #
+        reward = self.calculate_reward(action) 
         done = self.is_terminal((action[0]//3,action[1]//3))
-        return reward, done
+        (i,j) = self.get_possible_moves()[0]
+        return self.get_grid(i,j), reward, done
+    
+    def get_grid(self,i,j):
+        coord_board_x = i//3
+        coord_board_y = j//3
+        channel1 = (self.boards[coord_board_x,coord_board_y]==1) #player 1
+        channel2 = (self.boards[coord_board_x,coord_board_y]==-1) #player 2
+        channel3 = (self.boards[coord_board_x,coord_board_y]==0) #empty
+        
+        return (channel1,channel2,channel3), coord_board_x, coord_board_y
 
 
-# Exemple d'utilisation
-env = MorpionDQN(boards=np.zeros((3, 3, 3, 3), dtype=int),
+
+class CNN_DQN(nn.Module): # neural network used
+    def __init__(self, state_channels, action_size):
+        super(CNN_DQN, self).__init__()
+        self.state_channels = state_channels
+        self.action_size = action_size
+        self.conv1 = nn.Conv2d(in_channels=state_channels, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, padding=0)
+        self.fc1 = nn.Linear(64, 128)
+        self.fc2 = nn.Linear(128, action_size)
+
+
+
+    def forward(self, x):
+        x = torch.relu(self.conv1(x))
+        x = torch.relu(self.conv2(x))
+        x = self.pool(x)
+        x = x.view(-1, 64)
+        x = torch.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+class DQN:
+    def __init__(self, state_channels, action_size):
+        self.state_channels = state_channels
+        self.action_size = action_size
+        self.memory = deque(maxlen=2000)
+        self.gamma = 0.95  # discount rate
+        self.epsilon = 1.0  # exploration rate
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
+        self.model = CNN_DQN(state_channels, action_size)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.loss_fn = nn.MSELoss()
+
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
+
+    def act(self, env, state, board_x, board_y):
+        if np.random.rand() <= self.epsilon:
+            return random.choice(env.get_possible_moves())
+        state = torch.FloatTensor(np.array(state)).unsqueeze(0)
+        q_values = self.model(state)
+        action = torch.argmax(q_values).item()
+        action = index_to_coordinates(action)
+        return action[0]+3*board_x,action[1]+3*board_y
+
+    def replay(self, batch_size):
+        if len(self.memory) < batch_size:
+            return
+        minibatch = random.sample(self.memory, batch_size)
+        for state, action, reward, next_state, done in minibatch:
+            state_tensor = torch.FloatTensor(np.array(state)).unsqueeze(0)
+            next_state_tensor = torch.FloatTensor(np.array(next_state)).unsqueeze(0)
+            target = reward
+            
+            if not done:
+                target = (reward + self.gamma * torch.max(self.model(next_state_tensor)).item())
+            target_f = self.model(state_tensor).squeeze(0) # gérer les mises à jour de Q
+            action = coordinates_to_index(action[0],action[1])
+            target_f[action] = target
+            self.optimizer.zero_grad()
+            loss = self.loss_fn(self.model(state_tensor), target_f.unsqueeze(0))
+            loss.backward()
+            self.optimizer.step()
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+
+def index_to_coordinates(i):
+    x = i // 3
+    y = i % 3
+    return x, y
+
+def coordinates_to_index(x,y):
+    x = x%3
+    y = y%3
+    return x * 3 + y
+
+
+
+state_channels = 3  # represent each small grid with 3 channels (one for player 1, one for player 2, one for empty)
+action_size = 9  # 9 possible actions (one for each cell in the grid)
+agent = DQN(state_channels, action_size)
+env = MorpionDQN()
+
+# Training loop
+batch_size = 32
+num_episodes = 1000
+for e in range(num_episodes):
+    env = MorpionDQN(boards=np.zeros((3, 3, 3, 3), dtype=int),
                   big_boards=np.zeros((3, 3), dtype=int),
                   empty_boards=[[[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],
                     [(0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5)],
@@ -213,24 +264,22 @@ env = MorpionDQN(boards=np.zeros((3, 3, 3, 3), dtype=int),
                     [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
                     [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]],
                   empty_all={(i, j) for i in range(9) for j in range(9)})
-
-state_size = env.state_size
-action_size = env.action_size
-agent = DQN(state_size, action_size)
-
-optimizer = optim.Adam(agent.parameters(), lr=0.001)
-batch_size = 32
-num_episodes = 1000
-for e in range(num_episodes):
-    state = env.get_possible_moves()  #
     for time in range(500):
-        action = agent.act(state)
-        reward, done = env.step(action)
-        next_state = env.get_possible_moves()
-        agent.remember(state, action, reward, next_state, done)
-        state = next_state
+        (i,j) = env.get_possible_moves()[0] #
+        state,board_x,board_y = env.get_grid(i,j)
+        action = agent.act(env, state,board_x,board_y)
+        if action not in env.get_possible_moves():
+            print("Action non valide :", action)
+            reward = -100
+            done = True
+        else:
+            next_state, reward, done = env.step(action)
+            board_x,board_y = next_state[1],next_state[2]
+            next_state = next_state[0]
+            agent.remember(state, action, reward, next_state, done)
+            state = next_state
         if done:
-            print("episode: {}/{}, score: {}, e: {:.2}".format(e, num_episodes, time, agent.epsilon))
+            print("episode: {}/{}, time: {}, e: {:.2}".format(e, num_episodes, time, agent.epsilon))
             break
         if len(agent.memory) > batch_size:
             agent.replay(batch_size)
