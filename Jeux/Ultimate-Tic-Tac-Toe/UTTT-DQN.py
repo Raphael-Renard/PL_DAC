@@ -198,8 +198,8 @@ class DQN:
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.loss_fn = nn.MSELoss()
 
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+    def remember(self, state, action, reward, next_state, done, valid_action):
+        self.memory.append((state, action, reward, next_state, done, valid_action))
 
     def act(self, env, state, board_x, board_y):
         if np.random.rand() <= self.epsilon:
@@ -214,15 +214,18 @@ class DQN:
         if len(self.memory) < batch_size:
             return
         minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
+        for state, action, reward, next_state, done, valid_action in minibatch:
             state_tensor = torch.FloatTensor(np.array(state)).unsqueeze(0)
-            next_state_tensor = torch.FloatTensor(np.array(next_state)).unsqueeze(0)
             target = reward
-            
             if not done:
-                target = (reward + self.gamma * torch.max(self.model(next_state_tensor)).item())
-            target_f = self.model(state_tensor).squeeze(0) # gérer les mises à jour de Q
-            action = coordinates_to_index(action[0],action[1])
+                if valid_action:
+                    next_state_tensor = torch.FloatTensor(np.array(next_state)).unsqueeze(0)
+                    target = (reward + self.gamma * torch.max(self.model(next_state_tensor)).item())
+                else:
+                    # If the action was not valid, there's no next state
+                    target = reward
+            target_f = self.model(state_tensor).squeeze(0)
+            action = coordinates_to_index(action[0], action[1])
             target_f[action] = target
             self.optimizer.zero_grad()
             loss = self.loss_fn(self.model(state_tensor), target_f.unsqueeze(0))
@@ -230,6 +233,7 @@ class DQN:
             self.optimizer.step()
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+
 
 def index_to_coordinates(i):
     x = i // 3
@@ -246,11 +250,10 @@ def coordinates_to_index(x,y):
 state_channels = 3  # represent each small grid with 3 channels (one for player 1, one for player 2, one for empty)
 action_size = 9  # 9 possible actions (one for each cell in the grid)
 agent = DQN(state_channels, action_size)
-env = MorpionDQN()
 
 # Training loop
 batch_size = 32
-num_episodes = 1000
+num_episodes = 300
 for e in range(num_episodes):
     env = MorpionDQN(boards=np.zeros((3, 3, 3, 3), dtype=int),
                   big_boards=np.zeros((3, 3), dtype=int),
@@ -264,7 +267,7 @@ for e in range(num_episodes):
                     [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
                     [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]],
                   empty_all={(i, j) for i in range(9) for j in range(9)})
-    for time in range(500):
+    for time in range(100):
         (i,j) = env.get_possible_moves()[0] #
         state,board_x,board_y = env.get_grid(i,j)
         action = agent.act(env, state,board_x,board_y)
@@ -272,12 +275,15 @@ for e in range(num_episodes):
             print("Action non valide :", action)
             reward = -100
             done = True
+            valid_action = False
+            next_state = None
         else:
             next_state, reward, done = env.step(action)
             board_x,board_y = next_state[1],next_state[2]
             next_state = next_state[0]
-            agent.remember(state, action, reward, next_state, done)
-            state = next_state
+            valid_action = True
+        agent.remember(state, action, reward, next_state, done, valid_action)
+        state = next_state
         if done:
             print("episode: {}/{}, time: {}, e: {:.2}".format(e, num_episodes, time, agent.epsilon))
             break
