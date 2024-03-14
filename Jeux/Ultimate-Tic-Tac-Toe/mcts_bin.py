@@ -340,8 +340,8 @@ mcts_bin = MonteCarloTreeSearch(state_bin)
 mcts_old = MonteCarloTreeSearch(state_old)
 
 
-%timeit mcts_bin.select_move(simulations=10000)
-%timeit mcts_old.select_move(simulations=10000)         
+#%timeit mcts_bin.select_move(simulations=10000)
+#%timeit mcts_old.select_move(simulations=10000)         
 
 cProfile.run('mcts_old.select_move(simulations=10000)','statsold')
 cProfile.run('mcts_bin.select_move(simulations=10000)','statsbin')
