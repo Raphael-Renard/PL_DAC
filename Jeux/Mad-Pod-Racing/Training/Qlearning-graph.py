@@ -51,27 +51,29 @@ for i in range(nb_intervalles+1):
     player_threads = []
     player_queues = []
 
-    for i, player in enumerate(player_types):
+    for j, player in enumerate(player_types):
         player_send_q = Queue()
         player_receive_q = Queue()
         player_queues.append((player_send_q, player_receive_q))
-        if i == 0:
+        if j == 0:
             player_threads.append(Thread(target=player, args=(player_send_q, player_receive_q), daemon=True))
         else:
-            player_threads.append(Thread(target=player, args=(player_send_q, player_receive_q, f"q_table_{i}"), daemon=True))
+            player_threads.append(Thread(target=player, args=(player_send_q, player_receive_q, f"q_table_{j}"), daemon=True))
         player_threads[-1].start()
 
     nb_iter_tot = [0] * len(player_names)
     nb_games = 1000
     progress = np.arange(0, nb_games, nb_games // 10)
 
-    for i in range(nb_games):
-        nb_iter = game_loop_terminal(player_queues, player_names, first_ends=False, checkpoints=checkpoints_list[i])
+    print(i)
 
-        nb_iter_tot = [i+j for (i, j) in zip(nb_iter_tot, nb_iter)]
+    for j in range(nb_games):
+        nb_iter = game_loop_terminal(player_queues, player_names, first_ends=False, checkpoints=checkpoints_list[j])
 
-        if i in progress:
-            print(f"{i / nb_games * 100:.0f}%")
+        nb_iter_tot = [sum(k) for k in zip(nb_iter_tot, nb_iter)]
+
+        if j in progress:
+            print(f"{j / nb_games * 100:.0f}%")
 
     res_heuristique.append(nb_iter_tot[0] / nb_games)
     res_qlearning_1.append(nb_iter_tot[1] / nb_games)
@@ -82,8 +84,9 @@ plt.plot(intervalles, res_qlearning_1, label="bot qlearning gamma=1")
 plt.plot(intervalles, res_qlearning_2, label="bot qlearning gamma=.99")
 plt.xlabel("Nombre d'épisodes de train pour Qlearning")
 plt.ylabel("Nombre d'itérations par partie moyen")
+plt.title("Evolution du temps moyen de courses de divers profils de bots\nen fonction du nombre d'épisodes de train")
 plt.legend()
-plt.savefig("Qlearning")
+plt.savefig("../Resultats/Qlearning-comparaison-bots.png")
 plt.show()
 
 
