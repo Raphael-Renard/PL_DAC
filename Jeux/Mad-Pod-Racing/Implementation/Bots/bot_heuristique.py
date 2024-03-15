@@ -14,8 +14,13 @@ def bot_heuristique(player_send_q, player_receive_q):
             # next_checkpoint_angle: angle between your pod orientation and the direction of the next checkpoint
             ax, ay = x, y
 
-            x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in player_receive_q.get().split()]
-            player_receive_q.task_done()
+            try:
+                x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in player_receive_q.get().split()]
+                player_receive_q.task_done()
+            except:
+                player_receive_q.task_done()
+                exit(0)
+
 
             dx, dy = abs(ax - x), abs(ay - y)
 

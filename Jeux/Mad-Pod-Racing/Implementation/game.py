@@ -1,7 +1,10 @@
 import random
 
 import pygame
-from player import Player
+try:
+    from player import Player
+except ModuleNotFoundError:
+    from .player import Player
 
 
 def get_possible_intervals(checkpoints, x, gui):
@@ -102,35 +105,42 @@ def game_loop_gui(player_queues, player_names, player_colours, player_verbose):
         # dt is delta time in seconds since last frame, used for framerate-
         # independent physics.
         clock.tick(10)
-        dt = 1/10
+        dt = 1 / 10
 
     print(f"{t=}")
     end_game(True)
 
 
-def game_loop_terminal(player_queues, player_names, player_verbose):
-    checkpoints = generate_checkpoints()
+def game_loop_terminal(player_queues, player_names, player_verbose=False, first_ends=True, checkpoints=None):
+    if checkpoints is None:
+        checkpoints = generate_checkpoints()
 
     players = []
 
     for i, (player_send_q, player_receive_q) in enumerate(player_queues):
         players.append(Player(i + 1, player_names[i], checkpoints, player_send_q, player_receive_q, verbose=player_verbose))
 
-    win = []
+    win = set()
+    if not first_ends:
+        nb_iter = [0] * len(player_names)
+
     t = 0
-    while not win:
+    while not win if first_ends else len(win) < len(player_names):
         t += 1
-        for player in players:
-            end = player.update(1)
-            if end:
-                win.append(end)
+        for i, player in enumerate(players):
+            if (i+1) not in win:
+                end = player.update(1)
+                if end:
+                    win |= {end}
+                    if not first_ends:
+                        nb_iter[i] = t
 
         if t == 1000:
             t = "timeout"
             break
 
     # print(f"{t=}")
-    return win
+    return win if first_ends else nb_iter
 
 
 def end_game(gui):

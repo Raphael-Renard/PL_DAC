@@ -1,6 +1,7 @@
 import math
 import pickle
 import random
+
 from Qlearning import q_learning  # , Game
 import numpy as np
 import pygame
@@ -173,7 +174,7 @@ class MadPodRacingQLearning(Game):
         if distance_to_checkpoint < 800:
             reward = 100
         else:
-            reward = -distance_to_checkpoint * 23
+            reward = -distance_to_checkpoint / 100
 
         self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.velocity)
         # fin 
@@ -185,24 +186,25 @@ class MadPodRacingQLearning(Game):
         return self.player_state, reward, done
 
 
-new_qtable = True
-nb_tests = 10000
+if __name__ == "__main__":
+    new_qtable = True
+    nb_tests = 10000
 
-env = MadPodRacingQLearning()
+    env = MadPodRacingQLearning()
 
-if new_qtable:
-    q_table = q_learning(env, num_episodes=100000)
+    if new_qtable:
+        q_table = q_learning(env, num_episodes=100000, gamma=1)
 
-    # Dump q_table
-    with open('q_table.pkl', 'wb') as f:
-        pickle.dump(q_table, f)
+        # Dump q_table
+        with open('q_table.pkl', 'wb') as f:
+            pickle.dump(q_table, f)
 
-else:
-    # Load q_table
-    with open('q_table.pkl', 'rb') as f:
-        q_table = pickle.load(f)
+    else:
+        # Load q_table
+        with open('q_table.pkl', 'rb') as f:
+            q_table = pickle.load(f)
 
-# Test de l'agent entraîné
-times = np.array([env.test(q_table, 100) for _ in range(nb_tests)])
+    # Test de l'agent entraîné
+    times = np.array([env.test(q_table, 100) for _ in range(nb_tests)])
 
-print(f"Pourcentage de timeout : {round(len(times[times == -1]) / nb_tests, 4) * 100}\nPourcentage d'états non reconnus : {round(len(times[times == -2]) / nb_tests, 4) * 100}\nNombre d'itérations moyen : {times[times >= 0].mean()}")
+    print(f"Pourcentage de timeout : {round(len(times[times == -1]) / nb_tests, 4) * 100}\nPourcentage d'états non reconnus : {round(len(times[times == -2]) / nb_tests, 4) * 100}\nNombre d'itérations moyen : {times[times >= 0].mean()}")

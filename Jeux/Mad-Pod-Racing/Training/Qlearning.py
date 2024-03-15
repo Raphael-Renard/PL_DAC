@@ -1,8 +1,14 @@
+import pickle
+
 import numpy as np
 
 
-def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verbose=False):
-    q_table = {}
+def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verbose=False, qtable_path=None):
+    if qtable_path:
+        with open(f"{qtable_path}.pkl", "rb") as qtable_file:
+            q_table = pickle.load(qtable_file)
+    else:
+        q_table = {}
     for episode in range(num_episodes):
         print(f"Episode {episode + 1} / {num_episodes}")
         state = game.reset()

@@ -84,13 +84,13 @@ def decode_action(action, angle, player_pos):
     return int(target_x), int(target_y), thrust
 
 
-def bot_qlearning(player_send_q, player_receive_q):
+def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
     # Using queues to communicate with the main process instead of stdin/stdout
 
     t = 0
     x, y = 0, 0
 
-    with open("../Training/q_table.pkl", "rb") as f:
+    with open(f"../Training/{qtable_path}.pkl", "rb") as f:
         qtable = pickle.load(f)
 
     angle = None
@@ -102,7 +102,11 @@ def bot_qlearning(player_send_q, player_receive_q):
 
             ax, ay = x, y
 
-            x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in player_receive_q.get().split()]
+            try:
+                x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in player_receive_q.get().split()]
+            except:
+                player_receive_q.task_done()
+                exit(0)
             player_receive_q.task_done()
 
             if angle is None:
