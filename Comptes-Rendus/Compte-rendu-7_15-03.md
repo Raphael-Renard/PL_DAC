@@ -23,6 +23,10 @@
   - Généraliser le modèle (et par la suite l'adapter au problème voulu si besoin)
   - S'inspirer de l'interface de gym
   - Pour tester/débugger : essayer des jeux gym (ex. lunar lander, car pole)
+  - UTTT :
+    - faire l'argmax des actions légales
+    - état : 1hot de la sous-grille dans laquelle on joue + sous-grille
+    - modèle : 2 couches linéaires avec ReLU au milieu
   - Objectif :
     - MPR &rarr; battre le bot qlearning tabular
     - UTTT &rarr; résultats incertains mais ça se tente
@@ -31,6 +35,6 @@
 
 ## À faire
 
-- Poursuive l'implémentation de QDN (en mettant une version générique en commun)
+- Poursuive l'implémentation de DQN (en mettant une version générique en commun)
 - Tester le bot Qlearning sur codingame
 - Tester le bot UCT en local contre un bot random 
