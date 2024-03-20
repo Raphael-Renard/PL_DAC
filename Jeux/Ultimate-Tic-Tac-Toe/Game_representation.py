@@ -96,6 +96,9 @@ class Morpion(GameState):
     
 
     def is_a_board_completed(self, board_x,board_y,x,y): # est-ce qu'un petit board a été complété
+        # x,y coup joué (entre 0 et 2)
+        # board_x,board_y board dans lequel on a joué
+
         # Check ligne et colonne
         if abs(self.boards[board_x][board_y][x].sum()) == 3 or abs(self.boards[board_x][board_y][:, y].sum()) == 3:
             return True
@@ -144,15 +147,30 @@ class Morpion(GameState):
     
 
     ### DQN
+        
+    def small_board_won_reward(self, board_x,board_y,x,y):
+        # x,y coup joué (entre 0 et 2)
+        # board_x,board_y board dans lequel on a joué
+
+        if self.boards[board_x][board_y][x].sum() == 3*self.player or self.boards[board_x][board_y][:, y].sum() == 3*self.player:
+            return self.player
+
+        if (x + y) % 2 == 0:
+            if self.boards[board_x][board_y][0, 0] + self.boards[board_x][board_y][1, 1] + self.boards[board_x][board_y][2, 2] == 3*self.player or self.boards[board_x][board_y][2, 0] + self.boards[board_x][board_y][1, 1] + self.boards[board_x][board_y][0, 2] == 3*self.player:
+                return self.player
+        return 0
+    
     def calculate_reward(self,action):
-        if self.is_terminal((action[0]//3,action[1]//3)):
+        board_x, board_y = action[0]//3,action[1]//3
+
+        if self.is_terminal((board_x, board_y)):
             return self.get_result()
         else:
-            return 0
+            return self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
     
-    def step(self, action):
+    def step(self, action, reward):
         self.make_move_self(action)
-        reward = self.calculate_reward(action) 
+        reward += self.calculate_reward(action) 
         done = self.is_terminal((action[0]//3,action[1]//3))
         if done:
             return None, reward, done

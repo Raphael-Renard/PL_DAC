@@ -49,12 +49,13 @@ class DQN:
     def act(self, env, state, board_x, board_y):
         if np.random.rand() <= self.epsilon:
             return random.choice(env.get_possible_moves())
+        
         state = torch.FloatTensor(np.array(state)).unsqueeze(0)
         q_values = self.model(state)[0]
 
         for move in env.get_possible_moves(): # prend un coup valide
-            q_values[coordinates_to_index(move[0],move[1])]+=2000
-
+            if move[0]//3 == board_x and move[1]//3 == board_y: # coups légaux dans notre petite grille
+                q_values[coordinates_to_index(move[0],move[1])]+=2000
         action = torch.argmax(q_values).item()
         action = index_to_coordinates(action)
         return action[0]+3*board_x,action[1]+3*board_y
@@ -104,6 +105,7 @@ agent = DQN(state_channels, action_size)
 batch_size = 32
 num_episodes = 300
 for e in range(num_episodes):
+    reward = 0
     env = Morpion(boards=np.zeros((3, 3, 3, 3), dtype=int),
                   big_boards=np.zeros((3, 3), dtype=int),
                   empty_boards=[[[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],
@@ -127,7 +129,7 @@ for e in range(num_episodes):
             valid_action = False
             next_state = None
         else:
-            next_state, reward, done = env.step(action)
+            next_state, reward, done = env.step(action,reward)
             if done:
                 print("episode: {}/{}, time: {}, reward:{}, e: {:.2}".format(e, num_episodes, time, reward, agent.epsilon))
                 break
