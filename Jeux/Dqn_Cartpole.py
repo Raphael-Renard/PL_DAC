@@ -95,7 +95,7 @@ action_size = env.action_space.n
 agent = DQNAgent(state_size, action_size)
 batch_size = 64
 n_episodes = 1000
-C = 10
+C = 30
 
 for episode in range(n_episodes):
     state = env.reset()[0]  
