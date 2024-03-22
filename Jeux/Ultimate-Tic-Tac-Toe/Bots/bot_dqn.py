@@ -36,8 +36,8 @@ class DQN:
 
         return model
     
-    def remember(self, state, action, reward, next_state, done, valid_action):
-        self.memory.append((state, action, reward, next_state, done, valid_action))
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
 
     def act(self, env, state, board_x, board_y):
         if np.random.rand() <= self.epsilon:
@@ -57,16 +57,13 @@ class DQN:
         if len(self.memory) < batch_size:
             return
         minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done, valid_action in minibatch:
+        for state, action, reward, next_state, done in minibatch:
             state_tensor = torch.FloatTensor(np.array(state)).unsqueeze(0)
             target = reward
             if not done:
-                if valid_action:
-                    next_state_tensor = torch.FloatTensor(np.array(next_state)).unsqueeze(0)
-                    target = (reward + self.gamma * torch.max(self.target_model(next_state_tensor)).item())
-                else:
-                    # If the action was not valid, there's no next state
-                    target = reward
+                next_state_tensor = torch.FloatTensor(np.array(next_state)).unsqueeze(0)
+                target = (reward + self.gamma * torch.max(self.target_model(next_state_tensor)).item())
+
             target_f = self.model(state_tensor).squeeze(0)
             action = coordinates_to_index(action[0], action[1])
             target_f[action] = target
@@ -138,29 +135,19 @@ for e in range(num_episodes):
         (i,j) = env.get_possible_moves()[0] #
         state,board_x,board_y = env.get_grid(i,j)
         action = agent.act(env, state, board_x, board_y)
-        if action not in env.get_possible_moves():
-            print("Action non valide :", action)
-            reward = -100
-            total_reward += reward
-            done = True
-            valid_action = False
-            next_state = None
-        else:
-            next_state, reward, done = env.step(action)
-            total_reward += reward
-            if done:
-                agent.update_target_model()
-                print("episode: {}/{}, score:{}, e: {:.2}".format(e+1, num_episodes, total_reward, agent.epsilon))
-                break
-            board_x,board_y = next_state[1],next_state[2]
-            next_state = next_state[0]
-            valid_action = True
-        agent.remember(state, action, reward, next_state, done, valid_action)
-        state = next_state
+    
+        next_state, reward, done = env.step(action)
+        total_reward += reward
         if done:
             agent.update_target_model()
-            print("episode: {}/{}, reward:{}, e: {:.2}".format(e+1, num_episodes, reward, agent.epsilon))
+            print("episode: {}/{}, score:{}, e: {:.2}".format(e+1, num_episodes, total_reward, agent.epsilon))
             break
+        board_x,board_y = next_state[1],next_state[2]
+        next_state = next_state[0]
+        
+        agent.remember(state, action, reward, next_state, done)
+        state = next_state
+
         if len(agent.memory) > batch_size:
             agent.replay(batch_size)
         if e % C == 0:

@@ -8,7 +8,8 @@ mcts_gagne = []
 mcts_neutre = []
 
 
-L_explo = [0.5,0.7,1,1.3,1.6,1.8,2]
+#L_explo = [0.5,0.7,1,1.3,1.6,1.8,2]
+L_explo = [0.5,0.6,0.7,0.8,0.9,1,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2]
 for explo in L_explo:
     gagne_mcts = 0
     perdu_mcts = 0
@@ -43,7 +44,7 @@ for explo in L_explo:
 
         
         while not T:
-            MCTS = MonteCarloTreeSearch(state,record=False,exploration_factor=explo,simulations=500)
+            MCTS = MonteCarloTreeSearch(state,record=False,exploration_factor=explo,simulations=100)
             best_move = MCTS.select_move()
             state.make_move_self(best_move)
             T = state.is_terminal((best_move[0]//3,best_move[1]//3))

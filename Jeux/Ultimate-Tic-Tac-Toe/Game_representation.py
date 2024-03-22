@@ -138,11 +138,18 @@ class Morpion(GameState):
     def get_result(self):
         for i in range(3):
             if self.big_boards[i].sum() == 3*self.player or self.big_boards[:, i].sum() == 3*self.player:
+                print(self.big_boards, self.player)
                 return self.player
-        if  (self.big_boards[0,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[2,2]==self.player) or\
-            (self.big_boards[2,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[0][2]==self.player):
+
+            
+        if  self.big_boards[0,0]+ self.big_boards[1,1]+ self.big_boards[2,2]==3*self.player or\
+            self.big_boards[2,0]+ self.big_boards[1,1] + self.big_boards[0][2]==3*self.player:
+            print(self.big_boards, self.player)
             return self.player
+
+       
         else:
+            print(self.big_boards, "0")
             return 0
     
 
@@ -152,11 +159,11 @@ class Morpion(GameState):
         # x,y coup joué (entre 0 et 2)
         # board_x,board_y board dans lequel on a joué
 
-        if self.boards[board_x][board_y][x].sum() == 3*self.player or self.boards[board_x][board_y][:, y].sum() == 3*self.player:
+        if abs(self.boards[board_x][board_y][x].sum())==3 or abs(self.boards[board_x][board_y][:, y].sum()) == 3:
             return self.player
 
         if (x + y) % 2 == 0:
-            if self.boards[board_x][board_y][0, 0] + self.boards[board_x][board_y][1, 1] + self.boards[board_x][board_y][2, 2] == 3*self.player or self.boards[board_x][board_y][2, 0] + self.boards[board_x][board_y][1, 1] + self.boards[board_x][board_y][0, 2] == 3*self.player:
+            if abs(self.boards[board_x][board_y][0, 0] + self.boards[board_x][board_y][1, 1] + self.boards[board_x][board_y][2, 2]) == 3 or abs(self.boards[board_x][board_y][2, 0] + self.boards[board_x][board_y][1, 1] + self.boards[board_x][board_y][0, 2]) == 3:
                 return self.player
         return 0
     
@@ -164,9 +171,9 @@ class Morpion(GameState):
         board_x, board_y = action[0]//3,action[1]//3
 
         if self.is_terminal((board_x, board_y)):
-            return self.get_result()
+            return -self.get_result()*10 - 0.5*self.player
         else:
-            return self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
+            return -self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
     
     def step(self, action):
         self.make_move_self(action)
@@ -185,12 +192,7 @@ class Morpion(GameState):
         channel3 = (self.boards[coord_board_x,coord_board_y]==0) #empty
         
         return (channel1,channel2,channel3), coord_board_x, coord_board_y
-    
-    def get_grid2(self,i,j): # state representation : the small grid
-        coord_board_x = i//3
-        coord_board_y = j//3
-        
-        return self.boards[coord_board_x,coord_board_y], coord_board_x, coord_board_y
+ 
     
     def reset(self):
         self.boards=np.zeros((3, 3, 3, 3), dtype=int)
