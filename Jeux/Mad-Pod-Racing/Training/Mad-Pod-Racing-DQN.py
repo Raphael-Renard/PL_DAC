@@ -3,8 +3,9 @@ import random
 import numpy as np
 import pygame
 import tensorflow as tf
-from tensorflow.keras import layers, models
-
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 
 def distance_to(p1, p2):
     return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
@@ -46,6 +47,7 @@ class DQNAgent:
 
     def _build_model(self):
         # nombre de couches ? fonction d'activation ?
+        """
         model = models.Sequential([
                 layers.Input(shape=(self.state_size,)),
                 # arbitraire
@@ -53,7 +55,13 @@ class DQNAgent:
                 layers.Dense(24, activation='relu'),
                 layers.Dense(self.action_size, activation='linear')
         ])
-        model.compile(optimizer='adam', loss='mse')  # optimiseur sgd ?
+        """
+        model = Sequential()
+        model.add(Dense(64, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(128, activation='relu'))
+        model.add(Dense(self.action_size, activation='linear'))
+        
+        model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')  # optimiseur sgd ?
         return model
 
     def remember(self, state, action, reward, next_state, done):
@@ -67,13 +75,17 @@ class DQNAgent:
 
     def learning(self, batch_size):
         minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
+        states = np.zeros((batch_size, self.state_size)) #
+        target_f = self.model.predict(states) #
+        
+        for i, (state, action, reward, next_state, done) in enumerate(minibatch):
+            states[i]=state #
             target = reward
             if not done:
                 target = reward + self.gamma * np.max(self.target_model.predict(next_state))
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=1)
+            #target_f = self.model.predict(state)
+            target_f[i][action] = target
+        self.model.fit(states, target_f, epochs=1, verbose=1)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
@@ -213,7 +225,9 @@ for episode in range(n_episodes):
         state = next_state
         total_reward += reward
         if done:
+            agent.update_target_model() #
             print("Episode:", episode + 1, ", Total Reward:", total_reward)
+            break
         if len(agent.memory) > batch_size:
             agent.learning(batch_size)
             if episode % C == 0:

@@ -168,9 +168,9 @@ class Morpion(GameState):
         else:
             return self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
     
-    def step(self, action, reward):
+    def step(self, action):
         self.make_move_self(action)
-        reward += self.calculate_reward(action) 
+        reward = self.calculate_reward(action) 
         done = self.is_terminal((action[0]//3,action[1]//3))
         if done:
             return None, reward, done
@@ -185,4 +185,26 @@ class Morpion(GameState):
         channel3 = (self.boards[coord_board_x,coord_board_y]==0) #empty
         
         return (channel1,channel2,channel3), coord_board_x, coord_board_y
-
+    
+    def get_grid2(self,i,j): # state representation : the small grid
+        coord_board_x = i//3
+        coord_board_y = j//3
+        
+        return self.boards[coord_board_x,coord_board_y], coord_board_x, coord_board_y
+    
+    def reset(self):
+        self.boards=np.zeros((3, 3, 3, 3), dtype=int)
+        self.big_boards=np.zeros((3, 3), dtype=int)
+        self.empty_all={(i, j) for i in range(9) for j in range(9)}
+        self.empty_boards=[[[(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)],
+                    [(0,3),(0,4),(0,5),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5)],
+                    [(0,6),(0,7),(0,8),(1,6),(1,7),(1,8),(2,6),(2,7),(2,8)]],
+                    [[(3,0),(3,1),(3,2),(4,0),(4,1),(4,2),(5,0),(5,1),(5,2)],
+                    [(3,3),(3,4),(3,5),(4,3),(4,4),(4,5),(5,3),(5,4),(5,5)],
+                    [(3,6),(3,7),(3,8),(4,6),(4,7),(4,8),(5,6),(5,7),(5,8)]],
+                    [[(6,0),(6,1),(6,2),(7,0),(7,1),(7,2),(8,0),(8,1),(8,2)],
+                    [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
+                    [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]] # state representation : the small grid
+        (i,j) = self.get_possible_moves()[0] #
+        state,board_x,board_y = self.get_grid(i,j)
+        return state,board_x,board_y
