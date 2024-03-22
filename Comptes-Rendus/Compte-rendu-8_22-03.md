@@ -10,6 +10,11 @@
 
 - Cart Pole :
     - implémentation de DQN
+
+- Mad Pod Racing (Q-learning)
+    - adaptation du bot q-learning à Codingame
+    - résultats peu satisfaisants (comportement erratique -> bugs ?)
+
 ---
 
 ## Ce qui a été dit
