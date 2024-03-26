@@ -9,7 +9,7 @@ if __name__ == "__main__":
     new_qtable = True
     nb_tests = 10000
 
-    env = mpr_training_env.make((5, 9, 5, 9), (9, 5))
+    env = mpr_training_env.make((5, 5, 5, 5), (5, 3))
 
     if new_qtable:
         q_table = q_learning(env, num_episodes=100000, gamma=1)
