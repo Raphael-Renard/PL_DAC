@@ -134,22 +134,15 @@ class Morpion(GameState):
         self.last_move = move
         return False
 
-
+        
     def get_result(self):
         for i in range(3):
             if self.big_boards[i].sum() == 3*self.player or self.big_boards[:, i].sum() == 3*self.player:
-                print(self.big_boards, self.player)
                 return self.player
-
-            
-        if  self.big_boards[0,0]+ self.big_boards[1,1]+ self.big_boards[2,2]==3*self.player or\
-            self.big_boards[2,0]+ self.big_boards[1,1] + self.big_boards[0][2]==3*self.player:
-            print(self.big_boards, self.player)
+        if  (self.big_boards[0,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[2,2]==self.player) or\
+            (self.big_boards[2,0]==self.player and self.big_boards[1,1]==self.player and self.big_boards[0][2]==self.player):
             return self.player
-
-       
         else:
-            print(self.big_boards, "0")
             return 0
     
 
@@ -176,6 +169,10 @@ class Morpion(GameState):
             return -self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
     
     def step(self, action):
+        if action not in self.get_possible_moves():
+            reward=-1000
+            done = True
+            return None, reward, done
         self.make_move_self(action)
         reward = self.calculate_reward(action) 
         done = self.is_terminal((action[0]//3,action[1]//3))
