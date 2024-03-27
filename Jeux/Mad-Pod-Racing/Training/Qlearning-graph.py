@@ -17,7 +17,7 @@ bot_qlearning = importlib.import_module("Jeux.Mad-Pod-Racing.Implementation.Bots
 import mpr_training_env
 
 nb_intervalles = 10
-intervalles = np.arange(1, 100002, 100000 / nb_intervalles)
+intervalles = np.arange(1, 10002, 10000 / nb_intervalles)
 
 res_heuristique = []
 res_qlearning_1 = []

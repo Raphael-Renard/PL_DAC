@@ -36,10 +36,10 @@ def discretiser_angle(angle, nb_discretisations, max_angle=45):
     nb_par_cote = nb_discretisations // 2
 
     # On restreint à une vision devant soi
-    if angle < -45:
-        angle = -45
-    elif angle > 45:
-        angle = 45
+    if angle < -max_angle:
+        angle = -max_angle
+    elif angle > max_angle:
+        angle = max_angle
 
     side_intervals = np.round(np.exp(np.log(max_angle) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
 
@@ -58,7 +58,7 @@ def discretiser_angle(angle, nb_discretisations, max_angle=45):
     return disc_angle
 
 
-def discretiser_distance(distance, nb_discretisations, max_distance=8000, log=True):
+def discretiser_distance(distance, nb_discretisations, max_distance=10000, log=True):
     if log:
         distance_intervals = np.round(np.exp(np.log(max_distance - 800) * np.arange(0, 1.1, 1 / nb_discretisations))[1:])
     else:
@@ -231,7 +231,7 @@ class Env:
         side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
         angles = np.concatenate((-side_intervals[::-1], np.array([0]) if self.discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
 
-        dthrusts = np.linspace(-50, 50, self.discretisations_action[1])
+        dthrusts = np.round(np.linspace(-50, 50, self.discretisations_action[1]))
 
         # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
 
@@ -254,4 +254,5 @@ class Env:
         if distance_to_checkpoint < 800:
             return 100
         else:
-            return -distance_to_checkpoint/100#np.exp(-distance_to_checkpoint)
+            # return -distance_to_checkpoint/100
+            return np.exp(-distance_to_checkpoint)
