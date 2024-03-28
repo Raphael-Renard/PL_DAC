@@ -12,31 +12,34 @@ class DQN:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
-        self.memory = deque(maxlen=2000)
-        self.gamma = 0.95  # discount rate
-        self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.memory = deque(maxlen=1000000) #2000
+        self.gamma = 0.99  # discount rate
+        self.epsilon = 0.9  # exploration rate
+        self.epsilon_min = 0.1
+        self.epsilon_decay = 0.99
         self.model = self._build_model() 
         self.target_model = self._build_model() 
-        self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.00005)
+        # lr = 0.00005
+        # lr = 0.001
         self.loss_fn = nn.MSELoss()
 
 
     def _build_model(self):
         model = nn.Sequential(
-        nn.Linear(self.state_size, 32),
+        nn.Linear(self.state_size, 512),
         nn.ReLU(),
-        nn.Linear(32, 64),
+        nn.Linear(512, 512),
         nn.ReLU(),
-        nn.Linear(64, self.action_size))
+        nn.Linear(512, self.action_size))
 
         return model
     
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
-    def act(self, env, state, board_x, board_y):
+    
+    def act(self, env, state):
         if torch.rand(1) <= self.epsilon:
             return env.get_possible_moves()[torch.randint(high=len(env.get_possible_moves()),size=(1,))]
         
@@ -45,11 +48,10 @@ class DQN:
 
         # Gestion des coups illégaux
         for move in env.get_possible_moves(): # prend un coup valide
-            if move[0]//3 == board_x and move[1]//3 == board_y: # coups légaux dans notre petite grille
-                q_values[coordinates_to_index(move[0],move[1])]+=2000
+            q_values[coordinates_to_index(move)]+=2000
         
         action = torch.argmax(q_values).item()
-        action = index_to_coordinates(action, board_x,board_y)
+        action = index_to_coordinates(action)
         return action
 
     def replay(self, batch_size):
@@ -58,7 +60,7 @@ class DQN:
         
         indices = torch.randint(0, len(self.memory), (batch_size,))
         minibatch = [self.memory[idx] for idx in indices]
-        states = torch.zeros(batch_size, 9)
+        states = torch.zeros(batch_size, self.state_size)
         target_f = torch.zeros((batch_size, self.action_size))
 
         total_loss = 0
@@ -70,7 +72,7 @@ class DQN:
                 next_state_tensor = torch.FloatTensor(np.array(next_state))
                 target = (reward + self.gamma * torch.max(self.target_model(next_state_tensor)).item())
 
-            action = coordinates_to_index(action[0], action[1])
+            action = coordinates_to_index(action)
             target_f[i][action] = target
 
         self.optimizer.zero_grad()
@@ -89,22 +91,22 @@ class DQN:
         self.target_model.load_state_dict(self.model.state_dict())
 
 
-def index_to_coordinates(i,board_x,board_y):
-    x = i // 3
-    y = i % 3
-    return x+3*board_x,y+3*board_y
 
-def coordinates_to_index(x,y):
-    x = x%3
-    y = y%3
-    return x * 3 + y
+def coordinates_to_index(coordinates):
+
+    x, y = coordinates
+    return x * 9 + y
+
+def index_to_coordinates(index):
+
+    x = index // 9
+    y = index % 9
+    return x, y
 
 
 
-
-
-state_size = 9  # represent each small grid with 3 channels (one for player 1, one for player 2, one for empty)
-action_size = 9  # 9 possible actions (one for each cell in the grid)
+state_size = 81  # represent each small grid with 3 channels (one for player 1, one for player 2, one for empty)
+action_size = 81  # 9 possible actions (one for each cell in the grid)
 agent = DQN(state_size, action_size)
 C = 50
 train_loss = []
@@ -112,10 +114,11 @@ train_loss = []
 
 
 # Training loop
-batch_size = 32
-num_episodes = 100
+batch_size = 64
+num_episodes = 1000
 
 for e in range(num_episodes):
+    replay_loss = 0.0
     total_reward = 0
     done = False
     env = Morpion(boards=np.zeros((3, 3, 3, 3), dtype=int),
@@ -131,19 +134,18 @@ for e in range(num_episodes):
                     [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]],
                   empty_all={(i, j) for i in range(9) for j in range(9)})
     while not done:
-        (i,j) = env.get_possible_moves()[0] #
-        state,board_x,board_y = env.get_grid2(i,j)
-        action = agent.act(env, state, board_x, board_y)
-    
+
+        state = np.reshape(env.boards, (1,81))
+        action = agent.act(env, state)
+
         next_state, reward, done = env.step2(action)
         total_reward += reward
+
         if done:
             agent.update_target_model()
             print("episode: {}/{}, score: {}, eps: {:.2}, loss: {:.6}".format(e+1, num_episodes, total_reward, agent.epsilon,replay_loss))
             break
-        board_x,board_y = next_state[1],next_state[2]
-        next_state = next_state[0]
-        
+
         agent.remember(state, action, reward, next_state, done)
         state = next_state
 
@@ -155,14 +157,14 @@ for e in range(num_episodes):
     train_loss.append(replay_loss)
 
 
-plt.plot(train_loss)
+plt.plot(train_loss[1:])
 plt.xlabel('Episodes')
 plt.ylabel('Loss')
 plt.show()
 
 
 
-
+"""
 ###### Test contre bot aleatoire
 
 from bot_aleatoire import Aleatoire
@@ -225,3 +227,4 @@ plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn])
 plt.ylabel('Nombre de parties')
 plt.title('Parties jouées par un agent DQN contre un agent aléatoire')
 plt.show()
+"""

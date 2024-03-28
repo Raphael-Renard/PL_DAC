@@ -181,8 +181,9 @@ class Morpion(GameState):
         (i,j) = self.get_possible_moves()[0]
         return self.get_grid(i,j), reward, done
     
+    
 
-    def step2(self, action): # utilise representation en vecteur 9
+    def step2(self, action): # utilise representation de toute la grille en un vecteur de taille 81
         if action not in self.get_possible_moves():
             reward=-1000
             done = True
@@ -191,9 +192,8 @@ class Morpion(GameState):
         reward = self.calculate_reward(action) 
         done = self.is_terminal((action[0]//3,action[1]//3))
         if done:
-            return None, reward, done
-        (i,j) = self.get_possible_moves()[0]
-        return self.get_grid2(i,j), reward, done
+            return None, reward*100, done
+        return np.reshape(self.boards,(1,81)), reward, done
     
 
     def get_grid(self,i,j): # state representation : the small grid
