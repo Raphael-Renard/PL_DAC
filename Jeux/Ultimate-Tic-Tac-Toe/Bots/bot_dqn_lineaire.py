@@ -164,7 +164,6 @@ plt.show()
 
 
 
-"""
 ###### Test contre bot aleatoire
 
 from bot_aleatoire import Aleatoire
@@ -173,8 +172,7 @@ perdu_dqn = 0
 neutre_dqn = 0
 
 
-# test MCTS contre aléatoire
-for partie in range(500):
+for partie in range(100):
     env = Morpion(boards=np.array([[[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]],
                                         [[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]],
                                         [[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]],[[0,0,0],[0,0,0],[0,0,0]]]]),
@@ -202,12 +200,11 @@ for partie in range(500):
 
         
     while not T:
-        (i,j) = env.get_possible_moves()[0] #
-        state,board_x,board_y = env.get_grid2(i,j)
-        best_move = agent.act(env, state, board_x, board_y)
+        state = np.reshape(env.boards, (1,81))
+        action = agent.act(env, state)
         
-        env.make_move_self(best_move)
-        T = env.is_terminal((best_move[0]//3,best_move[1]//3))
+        env.make_move_self(action)
+        T = env.is_terminal((action[0]//3,action[1]//3))
         if T:
             break
         opponent_move = alea.give_move()
@@ -224,7 +221,7 @@ for partie in range(500):
     
 
 plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn])
+plt.legend()
 plt.ylabel('Nombre de parties')
 plt.title('Parties jouées par un agent DQN contre un agent aléatoire')
 plt.show()
-"""
