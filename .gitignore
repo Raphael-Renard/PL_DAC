@@ -2,3 +2,4 @@
 /Jeux/Mad-Pod-Racing/Training/q_table.pkl
 /Jeux/Mad-Pod-Racing/Training/q_table_1.pkl
 /Jeux/Mad-Pod-Racing/Training/q_table_2.pkl
+*.pyc
