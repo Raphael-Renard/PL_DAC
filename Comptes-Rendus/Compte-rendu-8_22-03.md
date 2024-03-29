@@ -36,7 +36,7 @@
     - Reward : exp(-distance)
     - Augmenter le pas de temps entre deux updates
   - UTTT :
-    - Reward petite grille bone idée (mais peut être trompeur car peut encourager à compléter une petite grille inutile)
+    - Reward petite grille bonne idée (mais peut être trompeur car peut encourager à compléter une petite grille inutile)
 - UCT :
   - Courbes de comparaisons :
     - Faire jouer contre heuristique
