@@ -99,27 +99,31 @@ def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(
 
 
 def unpack_action(action: int, player_pos, angle, discretisations_action):
-        nb_par_cote = discretisations_action[0] // 2
-        side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
-        angles = np.concatenate((-side_intervals[::-1], np.array([0]) if discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
+    print(action, action // discretisations_action[0])
+    nb_par_cote = discretisations_action[0] // 2
+    side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
+    angles = np.concatenate((-side_intervals[::-1], np.array([0]) if discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
 
-        dthrusts = np.round(np.linspace(-50, 50, discretisations_action[1]))
+    # dthrusts = np.round(np.linspace(-50, 50, discretisations_action[1]))
 
-        # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
+    # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
 
-        # thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
-        # thrust = max(0, min(100, thrust))
+    # thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
+    # thrust = max(0, min(100, thrust))
 
-        thrust = 100 if action // discretisations_action[0] != 0 else -50
+    # thrust = 100 if action // discretisations_action[0] != 0 else -50
 
-        prev_thrust = thrust
+    thrusts = np.round(np.linspace(0, 100, discretisations_action[1]))
+    thrust = int(thrusts[action // discretisations_action[0]])
 
-        angle = (angle + angles[action % len(angles)]) % 360
+    # prev_thrust = thrust
 
-        target_x = player_pos[0] + 10000 * math.cos(math.radians(angle))
-        target_y = player_pos[1] + 10000 * math.sin(math.radians(angle))
+    angle = (angle + angles[action % len(angles)]) % 360
 
-        return round(target_x), round(target_y), thrust
+    target_x = player_pos[0] + 10000 * math.cos(math.radians(angle))
+    target_y = player_pos[1] + 10000 * math.sin(math.radians(angle))
+
+    return round(target_x), round(target_y), thrust
 
 
 def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
@@ -162,9 +166,9 @@ def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
             if etat in qtable:
                 action = np.argmax(qtable[etat])
             else:
-                action = np.random.randint(0, 50)
+                action = np.random.randint(0, 15)
 
-            target_x, target_y, thrust = unpack_action(action, (x, y), (angle), (9, 9))
+            target_x, target_y, thrust = unpack_action(action, (x, y), (angle), (5, 3))
 
             player_send_q.put(f"{target_x} {target_y} {thrust if t != 1 else 'BOOST'}")
 

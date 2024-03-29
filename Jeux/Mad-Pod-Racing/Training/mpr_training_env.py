@@ -195,7 +195,7 @@ class Env:
         else:
             self.player_state = self.checkpoint_pos, self.player_pos, self.angle, self.speed
 
-        if distance_to_checkpoint < 800 or self.iteration == 100:
+        if distance_to_checkpoint < 800 or self.iteration == 200:
             done = True
         else:
             done = False
@@ -231,14 +231,17 @@ class Env:
         side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
         angles = np.concatenate((-side_intervals[::-1], np.array([0]) if self.discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
 
-        dthrusts = np.round(np.linspace(-50, 50, self.discretisations_action[1]))
+        # dthrusts = np.round(np.linspace(-50, 50, self.discretisations_action[1]))
 
         # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
 
-        thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
-        thrust = max(0, min(100, thrust))
+        # thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
+        # thrust = max(0, min(100, thrust))
 
-        self.prev_thrust = thrust
+        # self.prev_thrust = thrust
+
+        thrusts = np.round(np.linspace(0, 100, self.discretisations_action[1]))
+        thrust = thrusts[action // self.discretisations_action[0]]
 
         angle = (self.angle + angles[action % len(angles)]) % 360
 
