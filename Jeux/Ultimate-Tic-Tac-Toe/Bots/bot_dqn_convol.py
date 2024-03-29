@@ -158,6 +158,7 @@ for e in range(num_episodes):
 
 plt.plot(train_loss)
 plt.xlabel('Episodes')
+plt.title("Loss pendant l'entraînement")
 plt.ylabel('Loss')
 plt.show()
 
@@ -221,8 +222,7 @@ for partie in range(500):
         neutre_dqn +=1
     
 
-plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn])
-plt.legend()
+plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn], color = ['tab:green', 'tab:blue', 'tab:red'])
 plt.ylabel('Nombre de parties')
 plt.title('Parties jouées par un agent DQN contre un agent aléatoire')
 plt.show()

@@ -164,9 +164,12 @@ class Morpion(GameState):
         board_x, board_y = action[0]//3,action[1]//3
 
         if self.is_terminal((board_x, board_y)):
-            return -self.get_result()*10 - 0.5*self.player
+            return -self.get_result()*10
+            #return -self.get_result()*10 - 0.5*self.player
         else:
-            return -self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
+            return 0
+        #else:
+            #return -self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
     
     def step(self, action): # utilise representation en 3 channels 3x3
         if action not in self.get_possible_moves():

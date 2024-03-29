@@ -115,7 +115,7 @@ train_loss = []
 
 # Training loop
 batch_size = 64
-num_episodes = 1000
+num_episodes = 1500
 
 for e in range(num_episodes):
     replay_loss = 0.0
@@ -158,11 +158,19 @@ for e in range(num_episodes):
 
 
 plt.plot(train_loss[1:])
+plt.title("Loss pendant l'entraînement")
 plt.xlabel('Episodes')
+plt.ylim(1e-19, 1e-4)
 plt.ylabel('Loss')
+plt.yscale('log')
 plt.show()
 
 
+plt.plot(train_loss[1:])
+plt.title("Loss pendant l'entraînement")
+plt.xlabel('Episodes')
+plt.ylabel('Loss')
+plt.show()
 
 ###### Test contre bot aleatoire
 
@@ -220,8 +228,7 @@ for partie in range(100):
         neutre_dqn +=1
     
 
-plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn])
-plt.legend()
+plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn],color = ['tab:green', 'tab:blue', 'tab:red'])
 plt.ylabel('Nombre de parties')
 plt.title('Parties jouées par un agent DQN contre un agent aléatoire')
 plt.show()
