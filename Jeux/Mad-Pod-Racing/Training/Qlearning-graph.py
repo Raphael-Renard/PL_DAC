@@ -14,16 +14,16 @@ game_loop_terminal = game_module.game_loop_terminal
 generate_checkpoints = game_module.generate_checkpoints
 bot_heuristique = importlib.import_module("Jeux.Mad-Pod-Racing.Implementation.Bots.bot_heuristique").bot_heuristique
 bot_qlearning = importlib.import_module("Jeux.Mad-Pod-Racing.Implementation.Bots.bot_qlearning").bot_qlearning
-MadPodRacingQLearning = importlib.import_module("Mad-Pod-Racing-QLearning").MadPodRacingQLearning
+import mpr_training_env
 
 nb_intervalles = 10
-intervalles = np.arange(1, 100002, 100000 / nb_intervalles)
+intervalles = np.arange(1, 10002, 10000 / nb_intervalles)
 
 res_heuristique = []
 res_qlearning_1 = []
 res_qlearning_2 = []
 
-env = MadPodRacingQLearning()
+env = mpr_training_env.make((5, 5, 5, 5), (5, 3))
 
 player_threads = []
 player_queues = []
