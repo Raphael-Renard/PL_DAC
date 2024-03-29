@@ -1,5 +1,7 @@
+import codecs
 import math
 import pickle
+import traceback
 
 import numpy as np
 
@@ -58,16 +60,16 @@ def discretiser_angle(angle, nb_discretisations, max_angle=45):
     return disc_angle
 
 
-def discretiser_distance(distance, nb_discretisations, max_distance=10000, log=True):
+def discretiser_distance(distance, nb_discretisations, min_distance=800, max_distance=10000, log=True):
     if log:
-        distance_intervals = np.round(np.exp(np.log(max_distance - 800) * np.arange(0, 1.1, 1 / nb_discretisations))[1:])
+        distance_intervals = np.round(np.exp(np.log(max_distance - min_distance) * np.arange(0, 1.1, 1 / nb_discretisations))[1:])
     else:
-        distance_intervals = np.linspace(0, max_distance, nb_discretisations + 1)[1:]
+        distance_intervals = np.linspace(min_distance, max_distance, nb_discretisations + 1)[1:]
 
     # print(distance, distance_intervals)
 
     disc_dist = 0
-    while distance - 800 > distance_intervals[disc_dist] and disc_dist < (nb_discretisations - 1):
+    while distance - min_distance > distance_intervals[disc_dist] and disc_dist < (nb_discretisations - 1):
         disc_dist += 1
 
     # print(distance, disc_dist, distance_intervals)
@@ -75,7 +77,7 @@ def discretiser_distance(distance, nb_discretisations, max_distance=10000, log=T
     return disc_dist
 
 
-def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(5, 9, 5, 9)):
+def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(9, 9, 9, 9)):
     dist_checkpoint = distance_to(player_pos, checkpoint_pos)
     disc_dist_checkpoint = discretiser_distance(dist_checkpoint, discretisations[0])
 
@@ -85,7 +87,7 @@ def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(
     acheckpoint_disc = discretiser_angle(angle_to_checkpoint, discretisations[1])
 
     speed_length = distance_to((0, 0), speed)
-    disc_speed_length = discretiser_distance(speed_length, discretisations[2], log=False, max_distance=500)
+    disc_speed_length = discretiser_distance(speed_length, discretisations[2], log=False, min_distance=0, max_distance=500)
 
     speed_angle = angle_to(player_pos, player_pos + speed)
     angle_to_speed = diff_angle(angle, speed_angle)
