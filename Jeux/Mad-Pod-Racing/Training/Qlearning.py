@@ -3,15 +3,31 @@ import pickle
 import numpy as np
 
 
-def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verbose=False, qtable_path=None):
+def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verbose=False, qtable_path=None, disc=None, get_rewards=False):
+    try:
+        nb_actions = game.nb_actions
+    except AttributeError:
+        nb_actions = game.action_space.n
+
     if qtable_path:
         with open(f"{qtable_path}.pkl", "rb") as qtable_file:
             q_table = pickle.load(qtable_file)
     else:
         q_table = {}
+    if get_rewards:
+        rewards = []
+    e = 0
     for episode in range(num_episodes):
-        print(f"Episode {episode + 1} / {num_episodes}")
+        if get_rewards:
+            total_reward = 0
+        e += 1
+        if e % 100 == 0:
+            print(f"Episode {episode + 1} / {num_episodes}")
         state = game.reset()
+
+        if disc:
+            state = disc(state[0])
+
         done = False
         t = 0
         while not done:
@@ -24,12 +40,12 @@ def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verb
                 print("actual done", done)
 
             if state not in q_table:
-                q_table[state] = np.zeros(game.nb_actions)
+                q_table[state] = np.zeros(nb_actions)
 
             if np.random.rand() < epsilon:
                 if verbose:
                     print("-------------------EXPLORATION--------------------------")
-                action = np.random.randint(game.nb_actions)
+                action = np.random.randint(nb_actions)
                 if verbose:
                     print("action prise : ", action)
             else:
@@ -44,7 +60,18 @@ def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verb
 
             # action -= action % 10
             # action += state[0][1]
-            next_state, reward, done = game.step(action, verbose)
+            try:
+                next_state, reward, done = game.step(action)
+            except ValueError:
+                next_state, reward, terminated, truncated, _ = game.step(action)
+                done = terminated or truncated
+
+            if get_rewards:
+                total_reward += reward
+
+            if disc:
+                next_state = disc(next_state)
+
             if verbose:
                 print("next_state", next_state)
                 print("reward ", reward)
@@ -52,7 +79,7 @@ def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verb
                 print("\n\n")
 
             if next_state not in q_table:
-                q_table[next_state] = np.zeros(game.nb_actions)
+                q_table[next_state] = np.zeros(nb_actions)
 
             # Mise à jour de Q
             q_table[state][action] += alpha * (reward + gamma * np.max(q_table[next_state]) - q_table[state][action])
@@ -66,6 +93,13 @@ def q_learning(game, num_episodes=1000, alpha=0.1, gamma=0.99, epsilon=0.1, verb
                 print(q_table)
                 print("\n")
 
-        print(f"{t} itérations")
+        if e % 100 == 0:
+            print(f"{t} itérations")
+
+        if get_rewards:
+            rewards.append(total_reward)
+
+    if get_rewards:
+        return q_table, rewards
 
     return q_table
