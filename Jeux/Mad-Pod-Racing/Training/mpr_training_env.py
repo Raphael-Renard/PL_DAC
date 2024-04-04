@@ -97,6 +97,21 @@ def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(
     return pol_next_checkpoint, pol_speed
 
 
+def get_etat(checkpoint_pos, player_pos, angle, speed):
+    
+        dist_checkpoint = distance_to(player_pos, checkpoint_pos)
+
+        checkpoint_angle = angle_to(player_pos, checkpoint_pos)
+        angle_to_checkpoint = diff_angle(angle, checkpoint_angle)
+
+        speed_length = distance_to((0, 0), speed)
+
+        speed_angle = angle_to(player_pos, player_pos + speed)
+        angle_to_speed = diff_angle(angle, speed_angle)
+
+        return dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed
+
+
 def make(discretisations_etat=None, discretisations_action=None):
     return Env(discretisations_etat, discretisations_action)
 
@@ -136,7 +151,10 @@ class Env:
         self.angle = random.randint(0, 359)
         self.speed = (random.randint(0, 400), random.randint(0, 400))
 
-        self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
+        if self.discretisations_etat : 
+            self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
+        else :
+            self.player_state = get_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
 
         self.prev_thrust = 100
         self.iteration = 0
@@ -193,7 +211,8 @@ class Env:
         if self.discretisations_etat:
             self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
         else:
-            self.player_state = self.checkpoint_pos, self.player_pos, self.angle, self.speed
+            self.player_state = get_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
+
 
         if distance_to_checkpoint < 800 or self.iteration == 200:
             done = True
@@ -252,7 +271,7 @@ class Env:
 
         return round(target_x), round(target_y), thrust
 
-    def _get_reward(self):
+    """def _get_reward(self):
         distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
 
         # on utilise la distance entre le pod et le checkpoint pour définir la récompense
@@ -260,4 +279,20 @@ class Env:
             return 100
         else:
             # return -distance_to_checkpoint/100
-            return np.exp(-distance_to_checkpoint)
+            return np.exp(-distance_to_checkpoint)"""
+    
+    def _get_reward(self):
+        distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
+
+        print("la distance est de :",distance_to_checkpoint)
+
+        decay_rate = 0.001
+         
+        # on utilise la distance entre le pod et le checkpoint pour définir la récompense
+        if distance_to_checkpoint < 800:
+            return 100
+        else:
+            reward = 100 * np.exp(-decay_rate * distance_to_checkpoint)
+            return reward 
+    
+
