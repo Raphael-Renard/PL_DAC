@@ -5,6 +5,9 @@
     - courbe entropie augmente, converge
     - les q-values ne sont pas à 0
 
+- Policy Gradient :
+    - implémentation sur Cart Pole
+
 
 ---
 

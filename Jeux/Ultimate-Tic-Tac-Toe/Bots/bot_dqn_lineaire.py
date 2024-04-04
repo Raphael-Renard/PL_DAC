@@ -105,8 +105,8 @@ def index_to_coordinates(index):
 
 
 
-state_size = 81  # represent each small grid with 3 channels (one for player 1, one for player 2, one for empty)
-action_size = 81  # 9 possible actions (one for each cell in the grid)
+state_size = 81  # the whole grid
+action_size = 81  # the whole grid
 agent = DQN(state_size, action_size)
 C = 50
 

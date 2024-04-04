@@ -43,8 +43,3 @@
 - Passer à Policy Gradient
   - Lire les articles
   - Commencer à implémenter si clair
-
-
-
-
-
