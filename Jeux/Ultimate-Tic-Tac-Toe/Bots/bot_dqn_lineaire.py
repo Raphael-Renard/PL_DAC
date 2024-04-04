@@ -16,7 +16,7 @@ class DQN:
         self.gamma = 0.99  # discount rate
         self.epsilon = 0.9  # exploration rate
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.99
+        self.epsilon_decay = 0.8
         self.model = self._build_model() 
         self.target_model = self._build_model() 
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.00005)
@@ -109,13 +109,15 @@ state_size = 81  # represent each small grid with 3 channels (one for player 1, 
 action_size = 81  # 9 possible actions (one for each cell in the grid)
 agent = DQN(state_size, action_size)
 C = 50
+
 train_loss = []
+entropy_values = []
 
 
 
 # Training loop
 batch_size = 64
-num_episodes = 1500
+num_episodes = 1000
 
 for e in range(num_episodes):
     replay_loss = 0.0
@@ -156,20 +158,26 @@ for e in range(num_episodes):
 
     train_loss.append(replay_loss)
 
+    # Calculate entropy
+    state_tensor = torch.FloatTensor(state)
+    q_values = agent.model(state_tensor)
+    action_probs = nn.functional.softmax(q_values, dim=-1)
+        
+    entropy = -torch.sum(action_probs * torch.log(action_probs + 1e-8), dim=-1).mean()
+    entropy_values.append(entropy.item())
+
+
 
 plt.plot(train_loss[1:])
 plt.title("Loss pendant l'entraînement")
 plt.xlabel('Episodes')
-plt.ylim(1e-19, 1e-4)
 plt.ylabel('Loss')
-plt.yscale('log')
 plt.show()
 
-
-plt.plot(train_loss[1:])
-plt.title("Loss pendant l'entraînement")
+plt.plot(entropy_values[1:])
+plt.title("Entropie pendant l'entraînement")
 plt.xlabel('Episodes')
-plt.ylabel('Loss')
+plt.ylabel('Entropie')
 plt.show()
 
 ###### Test contre bot aleatoire
