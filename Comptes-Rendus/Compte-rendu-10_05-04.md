@@ -7,6 +7,7 @@
 
 - Policy Gradient :
     - implémentation sur Cart Pole
+    - début d'implémentation sur UTTT (problème de coups illégaux)
 
 - Qlearning tabulaire :
   - Mise en place du thrust relatif dans l'état
