@@ -93,7 +93,6 @@ class DQN:
 
 
 def coordinates_to_index(coordinates):
-
     x, y = coordinates
     return x * 9 + y
 
