@@ -2,39 +2,33 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from collections import deque
 from Game_representation import Morpion
 
-class PolicyNetwork(nn.Module):
-    def __init__(self, state_size, action_size):
-        super(PolicyNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 512)
-        self.fc2 = nn.Linear(512, 512)
-        self.fc3 = nn.Linear(512, action_size)
 
-        torch.nn.init.xavier_uniform_(self.fc1.weight)
-        torch.nn.init.xavier_uniform_(self.fc2.weight)
-        torch.nn.init.xavier_uniform_(self.fc3.weight)
-
-    def forward(self, x):
-        print("input:",x)
-        print("couche 1:",self.fc1(x))
-        x = torch.relu(self.fc1(x))
-
-        x = torch.relu(self.fc2(x))
-
-        x = self.fc3(x)
-        return torch.softmax(x, dim=-1)
 
 class PolicyGradient:
     def __init__(self, state_size, action_size, learning_rate=0.001, gamma=0.99):
-        self.policy_network = PolicyNetwork(state_size, action_size)
+        self.policy_network = nn.Sequential(
+        nn.Linear(state_size, 512),
+        nn.ReLU(),
+        nn.Linear(512, 512),
+        nn.ReLU(),
+        nn.Linear(512, action_size),
+        nn.Softmax(dim=-1))
         self.optimizer = optim.Adam(self.policy_network.parameters(), lr=learning_rate)
         self.gamma = gamma
 
-    def select_action(self, state):
+    def select_action(self, env, state):
         state_tensor = torch.FloatTensor(state)
         action_probs = self.policy_network(state_tensor)
+
+        
+        # proba d'un coup illégal à 0
+        for move in env.get_possible_moves():
+            action_probs[0,coordinates_to_index(move)] += 10
+        action_probs/=action_probs.sum()  
+        
+
         action_dist = torch.distributions.Categorical(action_probs)
         action = action_dist.sample()
         log_prob = action_dist.log_prob(action)
@@ -48,6 +42,7 @@ class PolicyGradient:
         policy_loss = torch.cat(policy_loss).sum()
 
         self.optimizer.zero_grad()
+        #torch.autograd.set_detect_anomaly(True)
         policy_loss.backward()
         self.optimizer.step()
 
@@ -58,8 +53,19 @@ class PolicyGradient:
             cumulative_reward = reward + self.gamma * cumulative_reward
             discounted_rewards.insert(0, cumulative_reward)
         discounted_rewards = torch.FloatTensor(discounted_rewards)
-        discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-8)
+        if discounted_rewards.size(0)>1:
+            discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (torch.std(discounted_rewards, dim=0) + 1e-8)
         return discounted_rewards
+    
+
+def coordinates_to_index(coordinates):
+    x, y = coordinates
+    return x * 9 + y
+
+
+
+
+
 
 state_size = 81  
 action_size = 81 
@@ -88,11 +94,10 @@ for episode in range(num_episodes):
     done = False
     while not done:
         state = np.reshape(env.boards, (1, 81))
-        action, log_prob = agent.select_action(state)
+        action, log_prob = agent.select_action(env, state)
         next_state, reward, done = env.step2(action)
         rewards.append(reward)
         log_probs.append(log_prob)
-    print(episode)
     agent.update(rewards, log_probs)
     if (episode + 1) % 10 == 0:
         print(f"Episode: {episode + 1}, Total Reward: {sum(rewards)}")
