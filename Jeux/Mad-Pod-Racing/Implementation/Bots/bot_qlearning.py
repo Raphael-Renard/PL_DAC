@@ -6,7 +6,6 @@ import traceback
 import numpy as np
 
 
-
 def distance_to(p1, p2):
     return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
@@ -50,11 +49,7 @@ def discretiser_angle(angle, nb_discretisations, max_angle=45):
     else:
         angle_intervals = np.concatenate((-side_intervals[::-1], side_intervals))[1:]
 
-    disc_angle = 0
-
-    while angle > angle_intervals[disc_angle]:
-        disc_angle += 1
-
+    disc_angle = np.digitize(angle, angle_intervals)
     # print(angle, disc_angle, angle_intervals)
 
     return disc_angle
@@ -68,76 +63,102 @@ def discretiser_distance(distance, nb_discretisations, min_distance=800, max_dis
 
     # print(distance, distance_intervals)
 
-    disc_dist = 0
-    while distance - min_distance > distance_intervals[disc_dist] and disc_dist < (nb_discretisations - 1):
-        disc_dist += 1
+    disc_dist = np.digitize(distance, distance_intervals)
 
     # print(distance, disc_dist, distance_intervals)
 
     return disc_dist
 
 
-def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(9, 9, 9, 9)):
+def get_state(checkpoint_pos, player_pos, angle, speed, discretisations, thrust_relatif=False, prev_thrust=0):
     dist_checkpoint = distance_to(player_pos, checkpoint_pos)
-    disc_dist_checkpoint = discretiser_distance(dist_checkpoint, discretisations[0])
 
     checkpoint_angle = angle_to(player_pos, checkpoint_pos)
     angle_to_checkpoint = diff_angle(angle, checkpoint_angle)
 
-    acheckpoint_disc = discretiser_angle(angle_to_checkpoint, discretisations[1])
-
     speed_length = distance_to((0, 0), speed)
-    disc_speed_length = discretiser_distance(speed_length, discretisations[2], log=False, min_distance=0, max_distance=500)
 
     speed_angle = angle_to(player_pos, player_pos + speed)
     angle_to_speed = diff_angle(angle, speed_angle)
-    aspeed_disc = discretiser_angle(angle_to_speed, discretisations[3])
 
-    pol_next_checkpoint = (disc_dist_checkpoint, acheckpoint_disc)
-    pol_speed = (disc_speed_length, aspeed_disc)
-
-    return pol_next_checkpoint, pol_speed
-
+    if thrust_relatif:
+        return (dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed, prev_thrust)
+    else:
+        return (dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed)
 
 
-def unpack_action(action: int, player_pos, angle, discretisations_action):
-    print(action, action // discretisations_action[0])
+def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations, thrust_relatif=False, prev_thrust=0):
+    player_state = get_state(checkpoint_pos, player_pos, angle, speed, discretisations, thrust_relatif, prev_thrust)
+
+    # print(f"State before discretisation: {player_state}")
+    if thrust_relatif:
+        dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed, prev_thrust = player_state
+    else:
+        dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed = player_state
+
+    disc_dist_checkpoint = discretiser_distance(dist_checkpoint, discretisations[0])
+    disc_angle_checkpoint = discretiser_angle(angle_to_checkpoint, discretisations[1])
+    disc_speed_length = discretiser_distance(speed_length, discretisations[2], log=False, min_distance=0, max_distance=1000)
+    disc_angle_speed = discretiser_angle(angle_to_speed, discretisations[3])
+
+    if thrust_relatif:
+        disc_prev_thrust = discretiser_distance(prev_thrust, discretisations[4], min_distance=0, max_distance=100, log=False)
+        return (disc_dist_checkpoint, disc_angle_checkpoint, disc_speed_length, disc_angle_speed, disc_prev_thrust)
+    else:
+        return (disc_dist_checkpoint, disc_angle_checkpoint, disc_speed_length, disc_angle_speed)
+
+
+def unpack_action(action, player_pos, angle, discretisations_action, thrust_relatif=False, prev_thrust=0):
+    """
+    Dé-discrétise l'action
+    :param action: entier représentant l'action discrétisée
+    :return: target_x, target_y et thrust
+    """
     nb_par_cote = discretisations_action[0] // 2
     side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
     angles = np.concatenate((-side_intervals[::-1], np.array([0]) if discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
 
-    # dthrusts = np.round(np.linspace(-50, 50, discretisations_action[1]))
+    if thrust_relatif:
+        dthrusts = np.round(np.linspace(-50, 50, discretisations_action[1]))
 
-    # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
+        # print(f"{nb_actions=}, {discretisations_action=}, {action=}")
 
-    # thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
-    # thrust = max(0, min(100, thrust))
+        thrust = prev_thrust + dthrusts[action // discretisations_action[0]]
+        thrust = max(0, min(100, thrust))
 
-    # thrust = 100 if action // discretisations_action[0] != 0 else -50
+        prev_thrust = thrust
 
-    thrusts = np.round(np.linspace(0, 100, discretisations_action[1]))
-    thrust = int(thrusts[action // discretisations_action[0]])
+    else:
+        thrusts = np.round(np.linspace(0, 100, discretisations_action[1]))
+        thrust = thrusts[action // discretisations_action[0]]
 
-    # prev_thrust = thrust
+    dangle = angles[action % len(angles)]
 
-    angle = (angle + angles[action % len(angles)]) % 360
+    angle = (angle + dangle) % 360
 
     target_x = player_pos[0] + 10000 * math.cos(math.radians(angle))
     target_y = player_pos[1] + 10000 * math.sin(math.radians(angle))
 
-    return round(target_x), round(target_y), thrust
+    return round(target_x), round(target_y), thrust, prev_thrust
 
 
 def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
     # Using queues to communicate with the main process instead of stdin/stdout
 
     t = 0
+    a, b = 0, 0
     x, y = 0, 0
 
     with open(f"../Training/{qtable_path}.pkl", "rb") as f:
         qtable = pickle.load(f)
+        print(qtable.keys())
 
     angle = None
+
+    discretisations_etat, discretisations_action = (5, 5, 5, 5, 5), (5, 5)
+    thrust_relatif = True
+    
+    prev_thrust = 100
 
     # game loop
     while True:
@@ -163,17 +184,23 @@ def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
 
                 angle += next_checkpoint_angle
 
-            etat = discretiser_etat((next_checkpoint_x, next_checkpoint_y), (x, y), angle, (x - ax, y - ay), discretisations=(9, 9, 9, 9))
-
+            etat = discretiser_etat((next_checkpoint_x, next_checkpoint_y), (x, y), angle, (x - ax, y - ay), discretisations=discretisations_etat, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
+            print(etat)
+            b += 1
             if etat in qtable:
                 action = np.argmax(qtable[etat])
             else:
-                action = np.random.randint(0, 15)
+                a += 1
+                print(a)
+                action = discretisations_action[0] * discretisations_action[1] - discretisations_action[0] // 2
 
-            target_x, target_y, thrust = unpack_action(action, (x, y), (angle), (5, 3))
+            print("Inconnus", a/b)
+
+            target_x, target_y, thrust, prev_thrust = unpack_action(action, (x, y), angle, discretisations_action, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
 
             player_send_q.put(f"{target_x} {target_y} {thrust if t != 1 else 'BOOST'}")
 
         except Exception as e:
             print(f"Error: {e}")
+            traceback.print_exc()
             break
