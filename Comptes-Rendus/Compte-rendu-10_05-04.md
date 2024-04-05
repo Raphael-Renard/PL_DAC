@@ -8,6 +8,10 @@
 - Policy Gradient :
     - implémentation sur Cart Pole
 
+- Qlearning tabulaire :
+  - Mise en place du thrust relatif dans l'état
+  - Test sur codingame : résultats satisfaisants
+
 
 ---
 

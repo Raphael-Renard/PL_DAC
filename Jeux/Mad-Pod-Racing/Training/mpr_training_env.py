@@ -48,11 +48,7 @@ def discretiser_angle(angle, nb_discretisations, max_angle=45):
     else:
         angle_intervals = np.concatenate((-side_intervals[::-1], side_intervals))[1:]
 
-    disc_angle = 0
-
-    while angle > angle_intervals[disc_angle]:
-        disc_angle += 1
-
+    disc_angle = np.digitize(angle, angle_intervals, right=True)
     # print(angle, disc_angle, angle_intervals)
 
     return disc_angle
@@ -66,58 +62,21 @@ def discretiser_distance(distance, nb_discretisations, min_distance=800, max_dis
 
     # print(distance, distance_intervals)
 
-    disc_dist = 0
-    while distance - min_distance > distance_intervals[disc_dist] and disc_dist < (nb_discretisations - 1):
-        disc_dist += 1
+    disc_dist = np.digitize(distance, distance_intervals, right=True)
+    if disc_dist >= 9:
+        disc_dist = 8
 
     # print(distance, disc_dist, distance_intervals)
 
     return disc_dist
 
 
-def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations=(5, 9, 5, 9)):
-    dist_checkpoint = distance_to(player_pos, checkpoint_pos)
-    disc_dist_checkpoint = discretiser_distance(dist_checkpoint, discretisations[0])
-
-    checkpoint_angle = angle_to(player_pos, checkpoint_pos)
-    angle_to_checkpoint = diff_angle(angle, checkpoint_angle)
-
-    acheckpoint_disc = discretiser_angle(angle_to_checkpoint, discretisations[1])
-
-    speed_length = distance_to((0, 0), speed)
-    disc_speed_length = discretiser_distance(speed_length, discretisations[2], log=False, min_distance=0, max_distance=500)
-
-    speed_angle = angle_to(player_pos, player_pos + speed)
-    angle_to_speed = diff_angle(angle, speed_angle)
-    aspeed_disc = discretiser_angle(angle_to_speed, discretisations[3])
-
-    pol_next_checkpoint = (disc_dist_checkpoint, acheckpoint_disc)
-    pol_speed = (disc_speed_length, aspeed_disc)
-
-    return pol_next_checkpoint, pol_speed
-
-
-def get_etat(checkpoint_pos, player_pos, angle, speed):
-    
-        dist_checkpoint = distance_to(player_pos, checkpoint_pos)
-
-        checkpoint_angle = angle_to(player_pos, checkpoint_pos)
-        angle_to_checkpoint = diff_angle(angle, checkpoint_angle)
-
-        speed_length = distance_to((0, 0), speed)
-
-        speed_angle = angle_to(player_pos, player_pos + speed)
-        angle_to_speed = diff_angle(angle, speed_angle)
-
-        return dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed
-
-
-def make(discretisations_etat=None, discretisations_action=None):
-    return Env(discretisations_etat, discretisations_action)
+def make(discretisations_etat=None, discretisations_action=None, thrust_relatif=False):
+    return Env(discretisations_etat, discretisations_action, thrust_relatif)
 
 
 class Env:
-    def __init__(self, discretisations_etat=None, discretisations_action=None):
+    def __init__(self, discretisations_etat=None, discretisations_action=None, thrust_relatif=False):
         # None -> continu
         # Sinon tuple (#Distances checkpoint, #Angles checkpoint, #Longueurs vitesse, #Angles vitesse)
         self.discretisations_etat = discretisations_etat
@@ -125,6 +84,10 @@ class Env:
         # None -> continu
         # Sinon tuple (#Angles (target), #Delta thrust)
         self.discretisations_action = discretisations_action
+
+        # True -> action = accélérer/ralentir par rapport au thrust actuel -> + thrust actuel dans l'état (donc 5 param)
+        # False -> action = quel thrust donner (de manière absolue)
+        self.thrust_relatif = thrust_relatif
 
         if discretisations_etat:
             self.nb_states = functools.reduce(lambda x, y: x * y, discretisations_etat)
@@ -151,12 +114,9 @@ class Env:
         self.angle = random.randint(0, 359)
         self.speed = (random.randint(0, 400), random.randint(0, 400))
 
-        if self.discretisations_etat : 
-            self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
-        else :
-            self.player_state = get_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
-
         self.prev_thrust = 100
+        self._update_state()
+
         self.iteration = 0
 
         return self.player_state
@@ -190,7 +150,7 @@ class Env:
 
         ra = self.angle * math.pi / 180
 
-        self.speed = (math.cos(ra) * thrust, math.sin(ra) * thrust)
+        self.speed = (self.speed[0] + math.cos(ra) * thrust, self.speed[1] + math.sin(ra) * thrust)
 
         if verbose:
             print("player_pos before step: ", self.player_pos)
@@ -208,11 +168,7 @@ class Env:
 
         distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
 
-        if self.discretisations_etat:
-            self.player_state = discretiser_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
-        else:
-            self.player_state = get_etat(self.checkpoint_pos, self.player_pos, self.angle, self.speed)
-
+        self._update_state()
 
         if distance_to_checkpoint < 800 or self.iteration == 200:
             done = True
@@ -252,47 +208,88 @@ class Env:
         side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
         angles = np.concatenate((-side_intervals[::-1], np.array([0]) if self.discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
 
-        # dthrusts = np.round(np.linspace(-50, 50, self.discretisations_action[1]))
+        if self.thrust_relatif:
+            dthrusts = np.round(np.linspace(-50, 50, self.discretisations_action[1]))
 
-        # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
+            # print(f"{self.nb_actions=}, {self.discretisations_action=}, {action=}")
 
-        # thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
-        # thrust = max(0, min(100, thrust))
+            thrust = self.prev_thrust + dthrusts[action // self.discretisations_action[0]]
+            thrust = max(0, min(100, thrust))
 
-        # self.prev_thrust = thrust
+            self.prev_thrust = thrust
 
-        thrusts = np.round(np.linspace(0, 100, self.discretisations_action[1]))
-        thrust = thrusts[action // self.discretisations_action[0]]
+        else:
+            thrusts = np.round(np.linspace(0, 100, self.discretisations_action[1]))
+            thrust = thrusts[action // self.discretisations_action[0]]
 
-        angle = (self.angle + angles[action % len(angles)]) % 360
+        dangle = angles[action % len(angles)]
+
+        angle = (self.angle + dangle) % 360
 
         target_x = self.player_pos[0] + 10000 * math.cos(math.radians(angle))
         target_y = self.player_pos[1] + 10000 * math.sin(math.radians(angle))
 
         return round(target_x), round(target_y), thrust
 
-    """def _get_reward(self):
-        distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
-
-        # on utilise la distance entre le pod et le checkpoint pour définir la récompense
-        if distance_to_checkpoint < 800:
-            return 100
-        else:
-            # return -distance_to_checkpoint/100
-            return np.exp(-distance_to_checkpoint)"""
-    
     def _get_reward(self):
         distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
 
-        print("la distance est de :",distance_to_checkpoint)
-
-        decay_rate = 0.001
-         
         # on utilise la distance entre le pod et le checkpoint pour définir la récompense
         if distance_to_checkpoint < 800:
             return 100
         else:
-            reward = 100 * np.exp(-decay_rate * distance_to_checkpoint)
-            return reward 
-    
+            return -distance_to_checkpoint / 100
+            # return np.exp(-distance_to_checkpoint)
 
+    # def _get_reward(self):
+    #     distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
+    #
+    #     # print("la distance est de :",distance_to_checkpoint)
+    #
+    #     decay_rate = 0.001
+    #
+    #     # on utilise la distance entre le pod et le checkpoint pour définir la récompense
+    #     if distance_to_checkpoint < 800:
+    #         return 100
+    #     else:
+    #         reward = 100 * np.exp(-decay_rate * distance_to_checkpoint)
+    #         return reward
+
+    def _update_state(self):
+        dist_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
+
+        checkpoint_angle = angle_to(self.player_pos, self.checkpoint_pos)
+        angle_to_checkpoint = diff_angle(self.angle, checkpoint_angle)
+
+        speed_length = distance_to((0, 0), self.speed)
+
+        speed_angle = angle_to(self.player_pos, self.player_pos + self.speed)
+        angle_to_speed = diff_angle(self.angle, speed_angle)
+
+        if self.thrust_relatif:
+            self.player_state = (dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed, self.prev_thrust)
+        else:
+            self.player_state = (dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed)
+
+        if self.discretisations_etat:
+            self._discretiser_etat()
+
+    def _discretiser_etat(self):
+        # print(f"State before discretisation: {self.player_state}")
+        if self.thrust_relatif:
+            dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed, prev_thrust = self.player_state
+        else:
+            dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed = self.player_state
+
+        disc_dist_checkpoint = discretiser_distance(dist_checkpoint, self.discretisations_etat[0])
+        disc_angle_checkpoint = discretiser_angle(angle_to_checkpoint, self.discretisations_etat[1])
+        disc_speed_length = discretiser_distance(speed_length, self.discretisations_etat[2], log=False, min_distance=0, max_distance=1000)
+        disc_angle_speed = discretiser_angle(angle_to_speed, self.discretisations_etat[3])
+
+        if self.thrust_relatif:
+            disc_prev_thrust = discretiser_distance(prev_thrust, self.discretisations_etat[4], min_distance=0, max_distance=100, log=False)
+            self.player_state = (disc_dist_checkpoint, disc_angle_checkpoint, disc_speed_length, disc_angle_speed, disc_prev_thrust)
+        else:
+            self.player_state = (disc_dist_checkpoint, disc_angle_checkpoint, disc_speed_length, disc_angle_speed)
+
+        # print(f"State after discretisation: {self.player_state}")
