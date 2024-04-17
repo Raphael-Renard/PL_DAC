@@ -115,7 +115,7 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
         total_reward = 0
         done = False
         total_loss = 0
-        nb_iter = 0
+        nb_loss = 0
         iteration = 0
         while not done:
 
@@ -123,7 +123,9 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
                 print("itération: ", iteration)
 
             iteration += 1
+
             action = agent.act(state)
+
             if verbose:
                 print("action", action)
             next_state, reward, done = env.step(action,verbose = True)
@@ -146,13 +148,13 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
                     print("loss: ", loss)
                     print("\n")
                 total_loss += loss
-                nb_iter += 1 
+                nb_loss += 1 
 
             if episode % C == 0:
                 agent.update_target_model()
 
-        if nb_iter != 0:
-            total_loss = total_loss / nb_iter
+        if nb_loss != 0:
+            total_loss = total_loss / nb_loss
         train_loss.append(total_loss)
         train_total_reward.append(total_reward)
 
