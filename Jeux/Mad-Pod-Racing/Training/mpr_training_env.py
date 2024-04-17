@@ -168,6 +168,9 @@ class Env:
 
         distance_to_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
 
+        if verbose : 
+            print("distance: ",distance_to_checkpoint)
+
         self._update_state()
 
         if distance_to_checkpoint < 800 or self.iteration == 200:
