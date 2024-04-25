@@ -16,7 +16,7 @@ class DQN:
         self.gamma = 0.99  # discount rate
         self.epsilon = 0.9  # exploration rate
         self.epsilon_min = 0.1
-        self.epsilon_decay = 0.8
+        self.epsilon_decay = 0.5 #0.8
         self.model = self._build_model() 
         self.target_model = self._build_model() 
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.00005)
@@ -62,8 +62,7 @@ class DQN:
         states = torch.zeros(batch_size, self.state_size)
         target_f = torch.zeros((batch_size, self.action_size))
 
-        #total_loss = 0 # loss moyenne
-        losses = [] #
+        total_loss = 0
 
         for i, (state, action, reward, next_state, done) in enumerate(minibatch):
             states[i] = torch.FloatTensor(state)
@@ -73,7 +72,6 @@ class DQN:
                 next_state_tensor = torch.FloatTensor(np.array(next_state))
                 target = (reward + self.gamma * torch.max(self.target_model(next_state_tensor)).item())
 
-            #action = coordinates_to_index(action)
             target_f[i][action] = target
 
         self.optimizer.zero_grad()
@@ -82,14 +80,12 @@ class DQN:
         loss.backward()
         self.optimizer.step()
 
-        #total_loss += loss.item()
-        losses.append(loss.item()) #
+        total_loss += loss.item()
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-        #return total_loss / batch_size
-        return losses
+        return total_loss / batch_size
 
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
@@ -124,8 +120,7 @@ batch_size = 64
 num_episodes = 100
 
 for e in range(num_episodes):
-    #replay_loss = 0.0
-    replay_loss = []
+    replay_loss = 0.0
     total_reward = 0
     done = False
     env.reset()
@@ -140,17 +135,14 @@ for e in range(num_episodes):
 
         if done:
             agent.update_target_model()
-            #print("episode: {}/{}, score: {}, eps: {:.2}, loss: {:.6}".format(e+1, num_episodes, total_reward, agent.epsilon,replay_loss))
-            print("episode: {}/{}, score: {}, eps: {:.2}, loss: {:.6}".format(e+1, num_episodes, total_reward, agent.epsilon,np.mean(replay_loss)))
-
+            print("episode: {}/{}, score: {}, eps: {:.2}, loss: {:.6}".format(e+1, num_episodes, total_reward, agent.epsilon,replay_loss))
             break
 
         agent.remember(state, action, reward, next_state, done)
         state = next_state
 
         if len(agent.memory) > batch_size:
-            replay_loss.extend(agent.replay(batch_size)) #
-            #replay_loss = agent.replay(batch_size)
+            replay_loss = agent.replay(batch_size)
         if e % C == 0:
                 agent.update_target_model()
 
@@ -165,11 +157,8 @@ for e in range(num_episodes):
     entropy = -torch.sum(action_probs * torch.log(action_probs + 1e-8), dim=-1).mean()
     entropy_values.append(entropy.item())
 
-flat_losses = [loss for sublist in train_loss for loss in sublist] #
 
-#plt.plot(train_loss[1:])
-plt.plot(flat_losses) #
-
+plt.plot(train_loss[1:])
 plt.title("Loss pendant l'entraînement")
 plt.xlabel('Episodes')
 plt.ylabel('Loss')
@@ -180,6 +169,8 @@ plt.title("Entropie pendant l'entraînement")
 plt.xlabel('Episodes')
 plt.ylabel('Entropie')
 plt.show()
+
+
 
 ###### Test contre bot aleatoire
 
