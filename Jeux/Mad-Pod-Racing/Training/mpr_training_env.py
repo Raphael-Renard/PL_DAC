@@ -258,6 +258,8 @@ class Env:
     #         reward = 100 * np.exp(-decay_rate * distance_to_checkpoint)
     #         return reward
 
+    
+
     def _update_state(self):
         dist_checkpoint = distance_to(self.player_pos, self.checkpoint_pos)
 

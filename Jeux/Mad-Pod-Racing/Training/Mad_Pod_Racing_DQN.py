@@ -51,38 +51,68 @@ class DQNAgent:
             return torch.argmax(q_values).item()
           
 
-    def replay(self, batch_size,verbose = False):
+    """def replay(self, batch_size):
+
         if len(self.memory) < batch_size:
-            return
+            return 0
+            
         minibatch = random.sample(self.memory, batch_size)
-        states, targets = [], []
-        for state, action, reward, next_state, done in minibatch:
-            state_tensor = torch.tensor(state, dtype=torch.float32)
-            next_state_tensor = torch.tensor(next_state, dtype=torch.float32)
+        states = torch.zeros(batch_size, self.state_size)
+        targets = torch.zeros(batch_size, self.action_size)
 
-            target = self.model(state_tensor)
-            if done:
-                target[action] = reward
-            else:
-                target[action] = reward + self.gamma * torch.max(self.target_model(next_state_tensor))
+        total_loss = 0
+        for i, (state, action, reward, next_state, done) in enumerate(minibatch):
+            state_tensor = torch.FloatTensor(state)
+            next_state_tensor = torch.FloatTensor(next_state)
 
-            states.append(state)
-            targets.append(target)
+            target = reward
 
-        states_tensor = torch.tensor(states, dtype=torch.float32)
-        targets_tensor = torch.stack(targets)
-        
+            if not done:
+                target = reward + self.gamma * torch.max(self.target_model(next_state_tensor)).item()
+
+            states[i] = state_tensor
+            targets[i][action] = target
+
         self.optimizer.zero_grad()
-        outputs = self.model(states_tensor)
-        loss = self.loss_fn(outputs, targets_tensor)
+
+        outputs = self.model(states)
+        loss = self.loss_fn(outputs, targets)
         loss.backward()
         self.optimizer.step()
 
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
+        return loss.item()"""
+    
+    def replay(self, batch_size):
 
-        if(verbose) : 
-            print(f"Loss: {loss.item()}")
-        
+        if len(self.memory) < batch_size:
+            return 0
+            
+        minibatch = random.sample(self.memory, batch_size)
+        states = torch.zeros(batch_size, self.state_size)
+        targets = torch.zeros(batch_size, self.action_size)
+
+        for i, (state, action, reward, next_state, done) in enumerate(minibatch):
+            state_tensor = torch.FloatTensor(state)
+            next_state_tensor = torch.FloatTensor(next_state)
+
+            target = reward
+
+            if not done:
+                target = reward + self.gamma * torch.max(self.target_model(next_state_tensor)).item()
+
+            states[i] = state_tensor
+            targets[i][action] = target
+
+        self.optimizer.zero_grad()
+
+        outputs = self.model(states)
+        loss = self.loss_fn(outputs, targets)
+        loss.backward()
+        self.optimizer.step()
+
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
@@ -102,7 +132,7 @@ def create_agent(state_size, action_size, memory_size=1000000, gamma=0.95, epsil
 #ENTRAINEMENT
 
 def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False):
-    train_loss = []
+    train_total_loss = []
     train_total_reward = []
 
     for episode in range(n_episodes):
@@ -121,15 +151,13 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
 
             if verbose:
                 print("itération: ", iteration)
-
             iteration += 1
 
             action = agent.act(state)
-
             if verbose:
                 print("action", action)
-            next_state, reward, done = env.step(action,verbose = True)
 
+            next_state, reward, done = env.step(action,verbose = True)
             agent.remember(state, action, reward, next_state, done)
             if verbose:
                 print("Score: {:.15f}".format(reward))
@@ -138,8 +166,7 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
 
             if done:
                 agent.update_target_model()
-                if verbose:
-                    print(f"Episode: {episode+1}/{n_episodes}, total_reward: {total_reward:.6f}, e: {agent.epsilon:.2}")
+                print(f"Episode: {episode+1}/{n_episodes}, total_reward: {total_reward:.6f}, e: {agent.epsilon:.2}")
                 break
 
             if len(agent.memory) > batch_size:
@@ -155,12 +182,13 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
 
         if nb_loss != 0:
             total_loss = total_loss / nb_loss
-        train_loss.append(total_loss)
+        train_total_loss .append(total_loss)
         train_total_reward.append(total_reward)
 
-    return train_loss, train_total_reward
+    return train_total_loss, train_total_reward
 
 #GRAPHES
+
 def plot_training_results(train_loss, train_total_reward):
     plt.figure(figsize=(12, 6))
 
