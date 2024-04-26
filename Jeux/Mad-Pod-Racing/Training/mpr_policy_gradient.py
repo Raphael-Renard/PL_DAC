@@ -5,6 +5,7 @@ import torch.optim as optim
 from collections import deque
 import gym
 import matplotlib.pyplot as plt
+import mpr_training_env
 
 
 class PolicyNetwork(nn.Module):
@@ -19,6 +20,7 @@ class PolicyNetwork(nn.Module):
         x = torch.relu(self.fc2(x))
         x = self.fc3(x)
         return torch.softmax(x, dim=-1)
+
 
 class PolicyGradient:
     def __init__(self, state_size, action_size, learning_rate=0.001, gamma=0.99):
@@ -39,9 +41,9 @@ class PolicyGradient:
         policy_loss = []
         for log_prob, discounted_reward in zip(log_probs, discounted_rewards):
             policy_loss.append((-log_prob * discounted_reward).reshape(1))
-        
+
         policy_loss = torch.cat(policy_loss).sum()
-        #print("policy loss:",policy_loss.item())
+        # print("policy loss:",policy_loss.item())
         loss = policy_loss.item()
 
         self.optimizer.zero_grad()
@@ -60,52 +62,49 @@ class PolicyGradient:
         return discounted_rewards
 
 
-
-
-
 # Training loop
-num_episodes = 700
-env = gym.make('CartPole-v1',render_mode = None)
-state_size = env.observation_space.shape[0]
-action_size = env.action_space.n 
+num_episodes = 2000
+env = mpr_training_env.make(discretisations_action=(3, 3))
+state_size = 4
+action_size = 9
 agent = PolicyGradient(state_size, action_size)
 
 plot_rewards = []
 plot_loss = []
 
-
 for episode in range(num_episodes):
-    state = env.reset()[0]
+    state = np.array(env.reset())
     state = np.reshape(state, [1, state_size])
-    
+
     rewards = []
     log_probs = []
     done = False
     while not done:
         action, log_prob = agent.select_action(state)
-        print(action)
-        next_state, reward, done, _,_ = env.step(action)
+        next_state, reward, done = env.step(action)
         rewards.append(reward)
         log_probs.append(log_prob)
-        state=next_state
-        if sum(rewards)>1000:
-            done=True
-    
+        state = next_state
+        if sum(rewards) > 1000:
+            done = True
+
     loss = agent.update(rewards, log_probs)
     if (episode + 1) % 10 == 0:
         print(f"Episode: {episode + 1}, Total Reward: {sum(rewards)}, Loss: {loss}")
-    
+
     plot_rewards.append(sum(rewards))
-    plot_loss.append(loss)
+    plot_loss.append(np.log(loss) if loss > 0 else np.log(1e-15))
 
 plt.plot(plot_rewards)
 plt.xlabel('Episodes')
 plt.ylabel('Reward')
-plt.title('Score per run')
+plt.title('Policy gradient : évolution du reward selon les épisodes')
+plt.savefig('../Resultats/Policy_gradient_reward.png')
 plt.show()
 
 plt.plot(plot_loss)
 plt.xlabel('Episodes')
-plt.ylabel('Loss')
-plt.title('Loss per episode')
+plt.ylabel('Log Loss')
+plt.title('Policy gradient : évolution de la loss selon les épisodes')
+plt.savefig('../Resultats/Policy_gradient_loss.png')
 plt.show()

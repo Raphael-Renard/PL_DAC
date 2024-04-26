@@ -122,7 +122,12 @@ class Env:
         return self.player_state
 
     def step(self, action, verbose=False):
-        target_x, target_y, thrust = self._unpack_action(action)
+        if self.discretisations_action:
+            target_x, target_y, thrust = self._unpack_action(action)
+        else:
+            angle, thrust = action
+            target_x = self.player_pos[0] + 10000 * math.cos(math.radians(angle))
+            target_y = self.player_pos[1] + 10000 * math.sin(math.radians(angle))
         # print(target_x, target_y, thrust, distance_to(self.player_pos, self.checkpoint_pos))
 
         self.iteration += 1
