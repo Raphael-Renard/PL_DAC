@@ -23,8 +23,13 @@ class PolicyGradient:
         state_tensor = torch.FloatTensor(state)
         action_probs = self.policy_network(state_tensor)
 
+        if torch.isnan(action_probs).any():
+            print('action probs',action_probs)
+            print('state tensor',state_tensor)
+            print('state',state)
+
+
         ###
-        
         # Get legal actions
         possible_moves = env.get_possible_moves()
         legal_actions = [coordinates_to_index(move) for move in possible_moves]
@@ -35,13 +40,7 @@ class PolicyGradient:
         masked_probs[0][legal_actions] = action_probs[0][legal_actions]
 
         masked_probs /= masked_probs.sum() # Normalize probabilities
-        if torch.isnan(masked_probs).any():
-            print('action',action_probs)
-            print('state',state_tensor)
-
-            action_dist = torch.distributions.Categorical(action_probs)
-        else:
-            action_dist = torch.distributions.Categorical(masked_probs)
+        action_dist = torch.distributions.Categorical(masked_probs)
 
         ###
         
@@ -75,6 +74,51 @@ class PolicyGradient:
         return discounted_rewards
     
 
+    def train_agent(self, num_episodes = 1000,show_plot=False,verbose_gradient=False):
+        
+        env = Morpion()
+
+        train_loss = []
+
+        for episode in range(num_episodes):
+            env.reset()
+            
+            rewards = []
+            log_probs = []
+            done = False
+
+            while not done:
+                state = np.reshape(env.boards, (1, 81))
+                action, log_prob = self.select_action(env,state)
+                next_state, reward, done = env.step2(action)
+                rewards.append(reward)
+                log_probs.append(log_prob)
+
+            self.update(rewards, log_probs)
+
+            if verbose_gradient:
+                if (episode + 1) % 10 == 0:
+                    for name, param in self.policy_network.named_parameters():
+                        if param.grad is not None:
+                            print(f"Parameter: {name}, Gradient Norm: {param.grad.norm().item()}")
+            
+
+            episode_loss = -torch.cat(log_probs).sum().item() #
+            train_loss.append(episode_loss)
+
+            if (episode + 1) % 10 == 0:
+                print(f"Episode: {episode + 1}, Total Reward: {sum(rewards)}, Loss: {episode_loss}")
+
+        if show_plot:
+            plt.plot(train_loss)
+            plt.title("Loss pendant l'entraînement")
+            plt.xlabel('Episodes')
+            plt.ylabel('Loss')
+            plt.show()
+
+
+
+
 def coordinates_to_index(coordinates):
     x, y = coordinates
     return x * 9 + y
@@ -85,88 +129,68 @@ def index_to_coordinates(index):
     return x, y
 
 
-
-state_size = 81  
-action_size = 81 
-
-agent = PolicyGradient(state_size, action_size)
-env = Morpion()
-
-
-# Training loop
-num_episodes = 1000
-train_loss = []
-
-for episode in range(num_episodes):
-    env.reset()
-    
-    rewards = []
-    log_probs = []
-    done = False
-
-    while not done:
-        state = np.reshape(env.boards, (1, 81))
-        action, log_prob = agent.select_action(env,state)
-        next_state, reward, done = env.step2(action)
-        rewards.append(reward)
-        log_probs.append(log_prob)
-
-    agent.update(rewards, log_probs)
-
-    episode_loss = -torch.cat(log_probs).sum().item() #
-    train_loss.append(episode_loss)
-
-    if (episode + 1) % 10 == 0:
-        print(f"Episode: {episode + 1}, Total Reward: {sum(rewards)}, Loss: {episode_loss}")
-
-
-plt.plot(train_loss)
-plt.title("Loss pendant l'entraînement")
-plt.xlabel('Episodes')
-plt.ylabel('Loss')
-plt.show()
-
-
-
-
-
 ###### Test contre bot aleatoire
 
 from bot_aleatoire import Aleatoire
-gagne_dqn = 0
-perdu_dqn = 0
-neutre_dqn = 0
 
-env = Morpion()
+liste_gagne = []
+liste_perdu = []
 
-for partie in range(100):
-    env.reset()
-    alea = Aleatoire(env)
-    T = False
+NB_EPISODES = [100,200,300,400,500,600,700,800]
 
+for nb_episodes in NB_EPISODES:
+    gagne_pg = 0
+    perdu_pg = 0
+    neutre_pg = 0
+
+    env = Morpion()
+    state_size = 81  
+    action_size = 81 
+
+    agent = PolicyGradient(state_size, action_size)
+    agent.train_agent(nb_episodes)
+
+    for partie in range(100):
+        env.reset()
+        alea = Aleatoire(env)
+        T = False
+
+            
+        while not T:
+            state = np.reshape(env.boards, (1,81))
+            action = index_to_coordinates(agent.select_action(env, state)[0])
+            
+            env.make_move_self(action)
+            T = env.is_terminal((action[0]//3,action[1]//3))
+            if T:
+                break
+            opponent_move = alea.give_move()
+            env.make_move_self(opponent_move)
+            T = env.is_terminal((opponent_move[0]//3,opponent_move[1]//3))
+
+        resultat = env.get_result()
+        if resultat == 1:
+            gagne_pg +=1
+        elif resultat == -1:
+            perdu_pg +=1
+        else:
+            neutre_pg +=1
         
-    while not T:
-        state = np.reshape(env.boards, (1,81))
-        action = index_to_coordinates(agent.select_action(env, state)[0])
-        
-        env.make_move_self(action)
-        T = env.is_terminal((action[0]//3,action[1]//3))
-        if T:
-            break
-        opponent_move = alea.give_move()
-        env.make_move_self(opponent_move)
-        T = env.is_terminal((opponent_move[0]//3,opponent_move[1]//3))
+    liste_gagne.append(gagne_pg)
+    liste_perdu.append(perdu_pg)
 
-    resultat = env.get_result()
-    if resultat == 1:
-        gagne_dqn +=1
-    elif resultat == -1:
-        perdu_dqn +=1
-    else:
-        neutre_dqn +=1
-    
+    """
+    plt.bar(["gagné","nul","perdu"],[gagne_pg,neutre_pg,perdu_pg],color = ['tab:green', 'tab:blue', 'tab:red'])
+    plt.ylabel('Nombre de parties')
+    plt.title('Policy gradient contre aléatoire')
+    plt.show()
+    """
 
-plt.bar(["gagné","nul","perdu"],[gagne_dqn,neutre_dqn,perdu_dqn],color = ['tab:green', 'tab:blue', 'tab:red'])
+
+plt.plot(NB_EPISODES,liste_gagne,label="policy gradient gagné")
+plt.plot(NB_EPISODES,liste_perdu,label="policy gradient perdu nul")
+plt.legend()
+plt.xlabel('Nombre de simulations')
 plt.ylabel('Nombre de parties')
-plt.title('Policy gradient contre aléatoire')
+plt.title('Sur 100 parties jouées, nombre de parties gagnées et\nperdues en fonction du nombre d\'épisodes')
 plt.show()

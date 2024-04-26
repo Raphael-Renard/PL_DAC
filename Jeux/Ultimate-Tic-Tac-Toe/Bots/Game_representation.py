@@ -164,10 +164,11 @@ class Morpion(GameState):
         board_x, board_y = action[0]//3,action[1]//3
 
         if self.is_terminal((board_x, board_y)):
-            return -self.get_result()*10
+            return -self.get_result()*100
             #return -self.get_result()*10 - 0.5*self.player
+    
         else:
-            return 0
+            return 0 # coup legal
         #else:
             #return -self.small_board_won_reward(board_x,board_y,action[0]%3,action[1]%3)*0.5 # reward de 0.5 si on gagne un petit board, -0.5 si on en perd
     
@@ -187,15 +188,18 @@ class Morpion(GameState):
     
 
     def step2(self, action): # utilise representation de toute la grille en un vecteur de taille 81
-        if action not in self.get_possible_moves():
-            reward=-1000
+        action = index_to_coordinates(action)
+        if action not in self.get_possible_moves(): # coup illegal
+            reward=-100
             done = True
             return None, reward, done
+        
         self.make_move_self(action)
         reward = self.calculate_reward(action) 
         done = self.is_terminal((action[0]//3,action[1]//3))
+
         if done:
-            return None, reward*100, done
+            return None, reward, done
         return np.reshape(self.boards,(1,81)), reward, done
     
 
@@ -227,6 +231,11 @@ class Morpion(GameState):
                     [[(6,0),(6,1),(6,2),(7,0),(7,1),(7,2),(8,0),(8,1),(8,2)],
                     [(6,3),(6,4),(6,5),(7,3),(7,4),(7,5),(8,3),(8,4),(8,5)],
                     [(6,6),(6,7),(6,8),(7,6),(7,7),(7,8),(8,6),(8,7),(8,8)]]] 
-        (i,j) = self.get_possible_moves()[0] #
-        state,board_x,board_y = self.get_grid(i,j)
-        return state,board_x,board_y
+        self.player = 1
+        self.last_move = None
+
+
+def index_to_coordinates(index):
+    x = index // 9
+    y = index % 9
+    return x, y
