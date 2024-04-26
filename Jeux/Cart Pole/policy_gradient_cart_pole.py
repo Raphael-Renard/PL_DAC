@@ -83,7 +83,6 @@ for episode in range(num_episodes):
     done = False
     while not done:
         action, log_prob = agent.select_action(state)
-        print(action)
         next_state, reward, done, _,_ = env.step(action)
         rewards.append(reward)
         log_probs.append(log_prob)
