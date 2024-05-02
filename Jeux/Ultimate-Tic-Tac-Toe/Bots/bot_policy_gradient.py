@@ -3,19 +3,21 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-from Game_representation import Morpion
+from Game_representation import Morpion, MorpionSimple
 
 
 
 class PolicyGradient:
     def __init__(self, state_size, action_size, learning_rate=0.001, gamma=0.99):
         self.policy_network = nn.Sequential(
-        nn.Linear(state_size, 512),
-        nn.ReLU(),
-        nn.Linear(512, 512),
-        nn.ReLU(),
-        nn.Linear(512, action_size),
-        nn.Softmax(dim=-1))
+            nn.Linear(state_size, 512),
+            nn.ReLU(),
+            #nn.Linear(162, 512),
+            #nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, action_size),
+            nn.Softmax(dim=-1))
         self.optimizer = optim.Adam(self.policy_network.parameters(), lr=learning_rate)
         self.gamma = gamma
 
@@ -28,7 +30,7 @@ class PolicyGradient:
             print('state tensor',state_tensor)
             print('state',state)
 
-
+        
         ###
         # Get legal actions
         possible_moves = env.get_possible_moves()
@@ -74,10 +76,8 @@ class PolicyGradient:
         return discounted_rewards
     
 
-    def train_agent(self, num_episodes = 1000,show_plot=False,verbose_gradient=False):
-        
-        env = Morpion()
-
+    def train_agent(self, env, num_episodes = 1000,show_plot=False,verbose_gradient=False):
+    
         train_loss = []
 
         for episode in range(num_episodes):
@@ -136,19 +136,20 @@ from bot_aleatoire import Aleatoire
 liste_gagne = []
 liste_perdu = []
 
-NB_EPISODES = [100,200,300,400,500,600,700,800]
+NB_EPISODES = range(500,1000,50)
+
 
 for nb_episodes in NB_EPISODES:
     gagne_pg = 0
     perdu_pg = 0
     neutre_pg = 0
 
-    env = Morpion()
+    env = MorpionSimple()
     state_size = 81  
     action_size = 81 
 
     agent = PolicyGradient(state_size, action_size)
-    agent.train_agent(nb_episodes)
+    agent.train_agent(env, nb_episodes, show_plot=True)
 
     for partie in range(100):
         env.reset()
@@ -188,7 +189,7 @@ for nb_episodes in NB_EPISODES:
 
 
 plt.plot(NB_EPISODES,liste_gagne,label="policy gradient gagné")
-plt.plot(NB_EPISODES,liste_perdu,label="policy gradient perdu nul")
+plt.plot(NB_EPISODES,liste_perdu,label="policy gradient perdu")
 plt.legend()
 plt.xlabel('Nombre de simulations')
 plt.ylabel('Nombre de parties')
