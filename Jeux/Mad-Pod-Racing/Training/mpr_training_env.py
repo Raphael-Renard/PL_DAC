@@ -71,12 +71,12 @@ def discretiser_distance(distance, nb_discretisations, min_distance=800, max_dis
     return disc_dist
 
 
-def make(discretisations_etat=None, discretisations_action=None, thrust_relatif=False):
-    return Env(discretisations_etat, discretisations_action, thrust_relatif)
+def make(discretisations_etat=None, discretisations_action=None, thrust_relatif=False, exp_reward=False):
+    return Env(discretisations_etat, discretisations_action, thrust_relatif, exp_reward)
 
 
 class Env:
-    def __init__(self, discretisations_etat=None, discretisations_action=None, thrust_relatif=False):
+    def __init__(self, discretisations_etat=None, discretisations_action=None, thrust_relatif=False, exp_reward=False):
         # None -> continu
         # Sinon tuple (#Distances checkpoint, #Angles checkpoint, #Longueurs vitesse, #Angles vitesse)
         self.discretisations_etat = discretisations_etat
@@ -101,6 +101,8 @@ class Env:
         self.player_pos = None
         self.checkpoint_pos = None
         self.iteration = None
+
+        self.exp_reward = exp_reward
 
         self.reset()
 
@@ -128,7 +130,11 @@ class Env:
             angle, thrust = action
             target_x = self.player_pos[0] + 10000 * math.cos(math.radians(angle))
             target_y = self.player_pos[1] + 10000 * math.sin(math.radians(angle))
+
+            thrust = max(0, min(100, thrust))
         # print(target_x, target_y, thrust, distance_to(self.player_pos, self.checkpoint_pos))
+
+        # print(f"Action: {action}, Target: ({target_x}, {target_y}), Thrust: {thrust}")
 
         self.iteration += 1
 
@@ -246,7 +252,10 @@ class Env:
         if distance_to_checkpoint < 800:
             return 100
         else:
-            return -distance_to_checkpoint / 100
+            if self.exp_reward:
+                return np.exp(-distance_to_checkpoint)
+            else:
+                return -distance_to_checkpoint / 100
             # return np.exp(-distance_to_checkpoint)
 
     # def _get_reward(self):

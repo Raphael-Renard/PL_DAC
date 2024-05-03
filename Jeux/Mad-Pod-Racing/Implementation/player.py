@@ -55,7 +55,7 @@ class Player:
             print(f"{self.name} input: {target_x}, {target_y}, {thrust}")
 
         # Reorient the pod (max 18 degrees)
-        a = self.angle_to(self.checkpoints[self.next_checkpoint])
+        a = self.angle_to(pygame.Vector2(target_x, target_y))
 
         right = a - self.angle if self.angle <= a else 360 - self.angle + a
         left = self.angle - a if self.angle >= a else self.angle + 360 - a

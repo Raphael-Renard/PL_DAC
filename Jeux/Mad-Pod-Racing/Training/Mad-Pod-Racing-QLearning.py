@@ -15,7 +15,7 @@ if __name__ == "__main__":
     env = mpr_training_env.make((3, 3, 3, 3, 3), (3, 3), thrust_relatif=True)
 
     if new_qtable:
-        q_table = q_learning(env, num_episodes=50000, gamma=1)
+        q_table = q_learning(env, num_episodes=100000, gamma=1)
 
         # Dump q_table
         with open('q_table.pkl', 'wb') as f:

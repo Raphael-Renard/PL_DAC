@@ -1,106 +1,88 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from collections import deque
-import gym
-import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+
+from Jeux.policy_gradient import PolicyGradient
+from continuous_cart_pole import ContinuousCartPoleEnv
 
 
-class PolicyNetwork(nn.Module):
-    def __init__(self, state_size, action_size):
-        super(PolicyNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_size, 50)
-        self.fc2 = nn.Linear(50, 50)
-        self.fc3 = nn.Linear(50, action_size)
+class Cart_Pole_PolicyNetwork(nn.Module):
+    def __init__(self, state_size):
+        super(Cart_Pole_PolicyNetwork, self).__init__()
+        self.fc1 = nn.Linear(state_size, 128)
+        self.fc2 = nn.Linear(128, 2)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
-        return torch.softmax(x, dim=-1)
-
-class PolicyGradient:
-    def __init__(self, state_size, action_size, learning_rate=0.001, gamma=0.99):
-        self.policy_network = PolicyNetwork(state_size, action_size)
-        self.optimizer = optim.Adam(self.policy_network.parameters(), lr=learning_rate)
-        self.gamma = gamma
-
-    def select_action(self, state):
-        state_tensor = torch.FloatTensor(state)
-        action_probs = self.policy_network(state_tensor)
-        action_dist = torch.distributions.Categorical(action_probs)
-        action = action_dist.sample()
-        log_prob = action_dist.log_prob(action)
-        return action.item(), log_prob
-
-    def update(self, rewards, log_probs):
-        discounted_rewards = self.calculate_discounted_rewards(rewards)
-        policy_loss = []
-        for log_prob, discounted_reward in zip(log_probs, discounted_rewards):
-            policy_loss.append((-log_prob * discounted_reward).reshape(1))
-        
-        policy_loss = torch.cat(policy_loss).sum()
-        #print("policy loss:",policy_loss.item())
-        loss = policy_loss.item()
-
-        self.optimizer.zero_grad()
-        policy_loss.backward()
-        self.optimizer.step()
-        return loss
-
-    def calculate_discounted_rewards(self, rewards):
-        discounted_rewards = []
-        cumulative_reward = 0
-        for reward in reversed(rewards):
-            cumulative_reward = reward + self.gamma * cumulative_reward
-            discounted_rewards.insert(0, cumulative_reward)
-        discounted_rewards = torch.FloatTensor(discounted_rewards)
-        discounted_rewards = (discounted_rewards - discounted_rewards.mean()) / (discounted_rewards.std() + 1e-8)
-        return discounted_rewards
+        return self.fc2(x)
 
 
-
+class Cart_pole_policy_gradient(PolicyGradient):
+    def __init__(self, state_size, action_size):
+        super().__init__(state_size, action_size)
+        self.policy_network = Cart_Pole_PolicyNetwork(state_size)
+        self.optimizer = optim.Adam(self.policy_network.parameters(), lr=0.001)
 
 
 # Training loop
-num_episodes = 700
-env = gym.make('CartPole-v1',render_mode = None)
-state_size = env.observation_space.shape[0]
-action_size = env.action_space.n 
-agent = PolicyGradient(state_size, action_size)
+num_episodes = 1000
+max_steps_per_episode = 500
+env = ContinuousCartPoleEnv()
+state_size = 4
+action_size = 1
+agent = Cart_pole_policy_gradient(state_size, action_size)
 
 plot_rewards = []
 plot_loss = []
 
-
 for episode in range(num_episodes):
-    state = env.reset()[0]
+    state = env.reset()
     state = np.reshape(state, [1, state_size])
-    
+
     rewards = []
     log_probs = []
     done = False
-    while not done:
+    while not done and len(rewards) < max_steps_per_episode:
         action, log_prob = agent.select_action(state)
-        next_state, reward, done, _,_ = env.step(action)
+
+        action = action[0]
+
+        if action < -1:
+            action = -1
+        elif action > 1:
+            action = 1
+
+        next_state, reward, done, _ = env.step(action)
         rewards.append(reward)
         log_probs.append(log_prob)
-        state=next_state
-        if sum(rewards)>1000:
-            done=True
-    
+        state = next_state
+        if sum(rewards) > 1000:
+            done = True
+
     loss = agent.update(rewards, log_probs)
     if (episode + 1) % 10 == 0:
         print(f"Episode: {episode + 1}, Total Reward: {sum(rewards)}, Loss: {loss}")
-    
+
     plot_rewards.append(sum(rewards))
     plot_loss.append(loss)
+
+    if np.array(plot_rewards).mean() >= 195 and len(plot_rewards) >= 100:
+        break
 
 plt.plot(plot_rewards)
 plt.xlabel('Episodes')
 plt.ylabel('Reward')
 plt.title('Score per run')
+
+reg = LinearRegression().fit(np.arange(len(plot_rewards)).reshape(-1, 1), np.array(plot_rewards).reshape(-1, 1))
+y_pred = reg.predict(np.arange(len(plot_rewards)).reshape(-1, 1))
+plt.plot(y_pred)
+
+plt.savefig('./policy_gradient_score.png')
+
 plt.show()
 
 plt.plot(plot_loss)

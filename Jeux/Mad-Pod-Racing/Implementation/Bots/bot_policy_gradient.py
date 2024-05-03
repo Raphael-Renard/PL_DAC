@@ -1,8 +1,23 @@
 import math
-import pickle
 import traceback
 
 import numpy as np
+import torch
+import torch.nn as nn
+
+
+class PolicyNetwork(nn.Module):
+    def __init__(self, state_size, action_size):
+        super(PolicyNetwork, self).__init__()
+        self.fc1 = nn.Linear(state_size, 50)
+        self.fc2 = nn.Linear(50, 50)
+        self.fc3 = nn.Linear(50, 2 * action_size)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return torch.softmax(x, dim=-1)
 
 
 def distance_to(p1, p2):
@@ -86,77 +101,35 @@ def get_state(checkpoint_pos, player_pos, angle, speed, discretisations, thrust_
         return (dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed)
 
 
-def discretiser_etat(checkpoint_pos, player_pos, angle, speed, discretisations, thrust_relatif=False, prev_thrust=0):
-    player_state = get_state(checkpoint_pos, player_pos, angle, speed, discretisations, thrust_relatif, prev_thrust)
-
-    # print(f"State before discretisation: {player_state}")
-    if thrust_relatif:
-        dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed, prev_thrust = player_state
-    else:
-        dist_checkpoint, angle_to_checkpoint, speed_length, angle_to_speed = player_state
-
-    disc_dist_checkpoint = discretiser_distance(dist_checkpoint, discretisations[0])
-    disc_angle_checkpoint = discretiser_angle(angle_to_checkpoint, discretisations[1])
-    disc_speed_length = discretiser_distance(speed_length, discretisations[2], log=False, min_distance=0, max_distance=1000)
-    disc_angle_speed = discretiser_angle(angle_to_speed, discretisations[3])
-
-    if thrust_relatif:
-        disc_prev_thrust = discretiser_distance(prev_thrust, discretisations[4], min_distance=0, max_distance=100, log=False)
-        return (disc_dist_checkpoint, disc_angle_checkpoint, disc_speed_length, disc_angle_speed, disc_prev_thrust)
-    else:
-        return (disc_dist_checkpoint, disc_angle_checkpoint, disc_speed_length, disc_angle_speed)
 
 
-def unpack_action(action, player_pos, angle, discretisations_action, thrust_relatif=False, prev_thrust=0):
-    """
-    Dé-discrétise l'action
-    :param action: entier représentant l'action discrétisée
-    :return: target_x, target_y et thrust
-    """
-    nb_par_cote = discretisations_action[0] // 2
-    side_intervals = np.round(np.exp(np.log(18) * np.arange(0, 1.1, 1 / nb_par_cote))[1:])
-    angles = np.concatenate((-side_intervals[::-1], np.array([0]) if discretisations_action[0] % 2 == 1 else np.array(None), side_intervals))
-
-    if thrust_relatif:
-        dthrusts = np.round(np.linspace(-50, 50, discretisations_action[1]))
-
-        # print(f"{nb_actions=}, {discretisations_action=}, {action=}")
-
-        thrust = prev_thrust + dthrusts[action // discretisations_action[0]]
-        thrust = max(0, min(100, thrust))
-
-        prev_thrust = thrust
-
-    else:
-        thrusts = np.round(np.linspace(0, 100, discretisations_action[1]))
-        thrust = thrusts[action // discretisations_action[0]]
-
-    dangle = angles[action % len(angles)]
+def unpack_action(action, player_pos, angle, thrust_relatif=False, prev_thrust=0):
+    dangle, thrust = action
 
     angle = (angle + dangle) % 360
 
     target_x = player_pos[0] + 10000 * math.cos(math.radians(angle))
     target_y = player_pos[1] + 10000 * math.sin(math.radians(angle))
 
-    return round(target_x), round(target_y), int(thrust), prev_thrust
+    return round(target_x), round(target_y), int(thrust)
 
 
-def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
+def bot_policy_gradient(player_send_q, player_receive_q, model_path="../Resultats/Policy_gradient_policy_network.pth"):
     # Using queues to communicate with the main process instead of stdin/stdout
 
     t = 0
     a, b = 0, 0
     x, y = 0, 0
 
-    with open(f"../Training/{qtable_path}.pkl", "rb") as f:
-        qtable = pickle.load(f)
-        print(qtable.keys())
+    # Load policy network
+    model = PolicyNetwork(4, 2)
+    model.load_state_dict(torch.load(model_path))
 
     angle = None
 
-    discretisations_etat, discretisations_action = (3, 3, 3, 3, 3), (3, 3)
-    thrust_relatif = True
-    
+    discretisations_etat, discretisations_action = None, (3, 3)
+    thrust_relatif = False
+
     prev_thrust = 100
 
     # game loop
@@ -183,17 +156,31 @@ def bot_qlearning(player_send_q, player_receive_q, qtable_path="q_table"):
 
                 angle += next_checkpoint_angle
 
-            etat = discretiser_etat((next_checkpoint_x, next_checkpoint_y), (x, y), angle, (x - ax, y - ay), discretisations=discretisations_etat, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
-            print(etat)
-            b += 1
-            if etat in qtable:
-                action = np.argmax(qtable[etat])
-                print("reconnu")
-            else:
-                a += 1
-                action = np.random.randint(discretisations_action[0] * discretisations_action[1])
+            etat = get_state((next_checkpoint_x, next_checkpoint_y), (x, y), angle, (x - ax, y - ay), discretisations_etat, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
 
-            target_x, target_y, thrust, prev_thrust = unpack_action(action, (x, y), angle, discretisations_action, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
+            b += 1
+
+            state_tensor = torch.FloatTensor(etat)
+
+            action_parameters = model(state_tensor).reshape((4,))
+
+            # action_parameters = action_parameters[0]
+
+            action_mean = action_parameters[::2]
+            action_std = action_parameters[1::2]
+
+            # print(f"action_mean: {action_mean}, action_std: {action_std}")
+
+            action_std = torch.clamp(action_std, 1e-6, 1)
+            action_dist = torch.distributions.Normal(action_mean, action_std)
+
+            # print(action_dist)
+
+            action = action_dist.sample()
+            print(f"action: {action}")
+
+
+            target_x, target_y, thrust = unpack_action(action, (x, y), angle)
 
             player_send_q.put(f"{target_x} {target_y} {thrust if t != 1 else 'BOOST'}")
 
