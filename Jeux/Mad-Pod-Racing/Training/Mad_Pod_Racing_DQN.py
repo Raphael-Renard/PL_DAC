@@ -132,6 +132,7 @@ def create_agent(state_size, action_size, memory_size=1000000, gamma=0.95, epsil
 #ENTRAINEMENT
 
 def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False):
+    
     train_total_loss = []
     train_total_reward = []
 
@@ -157,7 +158,7 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
             if verbose:
                 print("action", action)
 
-            next_state, reward, done = env.step(action,verbose = True)
+            next_state, reward, done = env.step(action,verbose = False)
             agent.remember(state, action, reward, next_state, done)
             if verbose:
                 print("Score: {:.15f}".format(reward))
