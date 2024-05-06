@@ -7,9 +7,8 @@
 \usepackage{graphicx}
 \usepackage{csquotes}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
-\usepackage{biblatex} 
-
-\addbibresource{sample.bib} %Import the bibliography file
+\usepackage{biblatex}
+\addbibresource{sample.bib} 
 
 \title{Rapport de projet}
 \author{Eliott Rakotondramanitra, Raphaël Renard, Luc Salvon}
@@ -20,34 +19,46 @@
 
 
 \section{Introduction}
+\begin{itemize}
+\item Présentation du sujet (Algorithmes de renforcement génériques pour les jeux)
 
-- Présentation du sujet (Algorithmes de renforcement génériques pour les jeux)
+\item Explications des deux jeux choisis ainsi que leurs types (plateau, course, états continus, états discrets…), on peut également expliquer que d’autres jeux ont été choisis mais non retenus et pourquoi.
 
-- Explications des deux jeux choisis ainsi que leurs types (plateau, course, états continus, états discrets…), on peut également expliquer que d'autres jeux ont été choisis mais non retenus et pourquoi.
+\item Lister les différents algorithmes de machine learning que l’on va implémenter.
 
-- Lister les différents algorithmes de machine learning que l'on va implémenter.
+\item Présenter les différentes contraintes imposées par CodinGame.
 
-- Présenter les différentes contraintes imposées par CodinGame.
+\item Explication du protocole expérimental (entraînement sur un environnement codé en interne puis déploiement sur CodinGame).
+\end{itemize}
 
-- Explication du protocole expérimental (entraînement sur un environnement codé en interne puis déploiement sur CodinGame).
+\section{Présentation des algorithmes}
+Explications simplifiées des algos
+
+\subsection{Monte Carlo tree search (MCTS)}
+
+\subsection{Q-learning}
+
+\subsection{Deep Q Learning (DQN)}
+
+\subsection{REINFORCE}
+
 
 
 \section{Mad pod racing}
 \subsection{Explications du jeu}
-environnement, actions possibles, conditions de victoire, déroulement d'une partie...
+environnement, actions possibles, conditions de victoire, déroulement d’une partie...
 
-\subsection{Présentation des algorithmes}
+\subsection{Utilisation des différents algorithmes}
 Pour chaque algo:
+\begin{itemize}
+\item Comment sont représentés les états et les actions dans le jeu ?
 
--	Explication simplifiée de l'algo
+\item Analyses des résultats en interne (graphes), des problèmes rencontrés, les solutions proposées qui ont marché ou non…
 
--	Comment sont représentés les états et les actions dans le jeu ?
+\item Comment a-t-on simplifié les modèles de RL et la structure du code pour envoyer sur CodinGame ? (Si c’est commun aux deux jeux on peut faire une partie commune « IV. Simplifier les modèles de RI » )
 
--	Analyses des résultats en interne (graphes), des problèmes rencontrés, les solutions proposées qui ont marché ou non…
-
--	Comment a-t-on simplifié les modèles de RL et la structure du code pour envoyer sur CodinGame ? (Si c'est commun aux deux jeux on peut faire une partie commune « IV. Simplifier les modèles de RI » )
-
--	Comparaison entre les résultats en interne et les résultats sur CodinGame
+\item	Comparaison entre les résultats en interne et les résultats sur CodinGame
+\end{itemize}
 
 
 \section{Ultimate Tic Tac Toe}
