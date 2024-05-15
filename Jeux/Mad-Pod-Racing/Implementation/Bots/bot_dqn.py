@@ -1,12 +1,21 @@
+import codecs
 import math
 import pickle
 import gzip
 import numpy as np
+import pygame
 import sys
 import os
 import random
+import gym
+import numpy as np
 from collections import deque
+import torch
+import torch.nn as nn
+import torch.optim as optim
 import base64
+import matplotlib.pyplot as plt
+import traceback
 import zlib
 import base64 as b64
 
@@ -198,33 +207,56 @@ def unpack_action(action, player_pos, angle, discretisations_action, thrust_rela
     return round(target_x), round(target_y), thrust, prev_thrust
 
 
-model = Neural_Network_Git(5,9,[32,32], weights_biases=poids)
-t = 0
-a, b = 0, 0
-x, y = 0, 0
-discretisations_etat, discretisations_action = None, (3, 3)
-angle = None
-thrust_relatif = True
-prev_thrust = 100
 
-while True: 
-    t += 1
-    ax, ay = x, y
-    x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in input().split()]
-    input()  
-    if angle is None:
-        angle = angle_to((x, y), (next_checkpoint_x, next_checkpoint_y))
-    else:
-        if next_checkpoint_angle > 18:
-            next_checkpoint_angle = 18
-        elif next_checkpoint_angle < -18:
-            next_checkpoint_angle = -18
-            angle += next_checkpoint_angle
 
-    state = get_state((next_checkpoint_x, next_checkpoint_y), (x, y), angle, (x - ax, y - ay), discretisations_etat, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
-    # Prédiction de l'action
-    action_values = model.compute_output(state)
-    action = np.argmax(action_values)
-    target_x, target_y, thrust, prev_thrust = unpack_action(action, (x, y), angle, discretisations_action, thrust_relatif=True,prev_thrust = 100)
-    print(f"{target_x} {target_y} {thrust if t != 1 else 'BOOST'}")
+def bot_dqn(player_send_q, player_receive_q, model_weigths = poids):
+
+    model = Neural_Network_Git(5,9,[32,32], weights_biases=poids)
+
+    t = 0
+    a, b = 0, 0
+    x, y = 0, 0
+
+    discretisations_etat, discretisations_action = None, (3, 3)
+    angle = None
+    thrust_relatif = True
+
+    prev_thrust = 100
+
+
+    while True:
+        try : 
+            t += 1
+            ax, ay = x, y
+            try:
+                x, y, next_checkpoint_x, next_checkpoint_y, next_checkpoint_dist, next_checkpoint_angle = [int(i) for i in player_receive_q.get().split()]
+            except:
+                player_receive_q.task_done()
+                exit(0)
+            player_receive_q.task_done()
+
+            if angle is None:
+                angle = angle_to((x, y), (next_checkpoint_x, next_checkpoint_y))
+            else:
+                if next_checkpoint_angle > 18:
+                    next_checkpoint_angle = 18
+                elif next_checkpoint_angle < -18:
+                    next_checkpoint_angle = -18
+
+                angle += next_checkpoint_angle
+
+            state = get_state((next_checkpoint_x, next_checkpoint_y), (x, y), angle, (x - ax, y - ay), discretisations_etat, thrust_relatif=thrust_relatif, prev_thrust=prev_thrust)
+
+             # Prédiction de l'action
+            action_values = model.compute_output(state)
+            action = np.argmax(action_values)
+
+            target_x, target_y, thrust, prev_thrust = unpack_action(action, (x, y), angle, discretisations_action, thrust_relatif=True,prev_thrust = 100)
+            player_send_q.put(f"{target_x} {target_y} {thrust if t != 1 else 'BOOST'}")
+        
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+            break
+
         

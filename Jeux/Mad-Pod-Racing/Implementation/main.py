@@ -7,15 +7,15 @@ from Bots.bot_heuristique import *
 from Bots.bot_simple import *
 from Bots.bot_qlearning import *
 from Bots.bot_policy_gradient import *
-
+from Bots.bot_dqn import *
 if __name__ == "__main__":
     gui = True
     # gui = False
     player_verbose = False
 
-    player_types = [bot_simple, bot_qlearning, bot_policy_gradient]
-    player_names = ["Bot simple", "Bot qlearning", "Bot policy gradient"]
-    player_colours = ["blue", "yellow", "green"]
+    player_types = [bot_simple, bot_qlearning, bot_policy_gradient,bot_dqn]
+    player_names = ["Bot simple", "Bot qlearning", "Bot policy gradient","Bot dqn"]
+    player_colours = ["blue", "yellow", "green","red"]
 
     # player_types = [bot_simple]
     # player_names = ["Bot simple"]

@@ -11,7 +11,7 @@ import torch.optim as optim
 import mpr_training_env
 from mpr_training_env import Env
 import matplotlib.pyplot as plt
-
+import pickle
 
 #AGENT
 class DQNAgent:
@@ -30,11 +30,11 @@ class DQNAgent:
 
     def _build_model(self, input_shape, action_space):
         model = nn.Sequential(
-            nn.Linear(input_shape, 512),
+            nn.Linear(input_shape, 100),
             nn.ReLU(),
-            nn.Linear(512, 512),
+            nn.Linear(100, 100),
             nn.ReLU(),
-            nn.Linear(512, action_space)
+            nn.Linear(100, action_space)
         )
         return model
     
@@ -122,6 +122,21 @@ class DQNAgent:
         self.target_model.load_state_dict(self.model.state_dict())
 
 
+    def pickle(self):
+        weights = []
+        biases = []
+        # Parcourir les paramètres du modèle principal
+        for name, param in self.model.named_parameters():
+            if 'weight' in name:
+                weights.append(param.cpu().detach().numpy())  # Convertir les tensors PyTorch en arrays NumPy
+            elif 'bias' in name:
+                biases.append(param.cpu().detach().numpy())
+        # Sérialiser les poids et les biais à l'aide de pickle
+        serialized_data = pickle.dumps((weights, biases))
+        return serialized_data
+
+
+
 
 
 def create_agent(state_size, action_size, memory_size=1000000, gamma=0.95, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995, learning_rate=0.001):
@@ -158,7 +173,7 @@ def train_agent(env, agent, n_episodes=100, batch_size=64, C=150, verbose=False)
             if verbose:
                 print("action", action)
 
-            next_state, reward, done = env.step(action,verbose = False)
+            next_state, reward, done = env.step(action)
             agent.remember(state, action, reward, next_state, done)
             if verbose:
                 print("Score: {:.15f}".format(reward))
