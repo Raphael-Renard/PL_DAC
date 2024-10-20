@@ -1,7 +1,7 @@
 # Algorithmes de renforcement génériques pour les jeux
 ## M1, UE PLDAC (Projet Logiciel DAC)
 
-** Raphaël Renard, Luc Salvon, Eliott Rakotondramanitra**
+**Raphaël Renard, Luc Salvon, Eliott Rakotondramanitra**
 
 ---
 
